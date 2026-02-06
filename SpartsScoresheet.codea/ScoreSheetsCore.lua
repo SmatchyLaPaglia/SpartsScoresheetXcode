@@ -16,14 +16,27 @@ function ScoreSheets:init(makeTeams)
     end
     return v
   end
+  
+  local function _dbg(msg)
+    if objc and objc.log then
+      objc.log("[ScoreSheets:init]", msg)
+    else
+      print("[ScoreSheets:init]", msg)
+    end
+  end
+  
+  _dbg("enter")
   self._scrollTween = nil
   self.makeTeams = makeTeams or self._defaultTeams
   self.tables    = {}
   self.scrollY   = 0
   self._kbShiftY = 0
   self._kbTween = nil
+  _dbg("notchTracker")
   self.notchTracker = newNotchTracker()
+  _dbg("archiveExporter")
   self.archiveExporter = ArchiveExporter()
+  _dbg("archiveBrowser")
   self.archiveBrowser = ArchiveBrowser()
   self._archiveWasActive = false
   self._archiveLoading = false
@@ -55,9 +68,12 @@ function ScoreSheets:init(makeTeams)
     return (self.scrollY or 0) + (self._kbShiftY or 0)
   end
   -- Start with ONE table
+  _dbg("ScoreTable create")
   table.insert(self.tables, ScoreTable(self.makeTeams(1)))
+  _dbg("ScoreTable created")
   
   -- Scroll sensor (whole screen)
+  _dbg("scroll sensor")
   self.scroll = {
     sensor   = Sensor{ parent = {x = WIDTH/2, y = HEIGHT/2, w = WIDTH, h = HEIGHT}, xywhMode = CENTER },
     mode     = "idle",
@@ -91,6 +107,7 @@ function ScoreSheets:init(makeTeams)
   end)
   
   -- Meanness toggle (scrolls with first sheet, lives where Reset All used to be)
+  _dbg("tzBtn sensor")
   self.tzBtn = {
     w = 140, h = 34,
     sensor = Sensor{ parent = {x=0, y=0, w=140, h=34}, xywhMode = CORNER }
@@ -103,12 +120,14 @@ function ScoreSheets:init(makeTeams)
   end)
   
   -- New Game (scrolls with first sheet, right side)
+  _dbg("newGameBtn sensor")
   self.newGameBtn = {
     w = self.tzBtn.w, h = self.tzBtn.h,
     sensor = Sensor{ parent = {x=0, y=0, w=self.tzBtn.w, h=self.tzBtn.h}, xywhMode = CORNER }
   }
   
   -- Archives (scrolls with first sheet, right side)
+  _dbg("archiveBtn sensor")
   self.archiveBtn = {
     w = self.tzBtn.w, h = self.tzBtn.h,
     sensor = Sensor{ parent = {x=0, y=0, w=self.tzBtn.w, h=self.tzBtn.h}, xywhMode = CORNER }
@@ -128,6 +147,7 @@ function ScoreSheets:init(makeTeams)
   end)
   
   -- New Hand button (fixed UI)
+  _dbg("newBtn sensor")
   self.newBtn = {
     w = self.tzBtn.w, h = self.tzBtn.h * 1.25,
     x = WIDTH - 140, y = 22,
@@ -138,6 +158,7 @@ function ScoreSheets:init(makeTeams)
   end)
   
   -- Get layout from the first table
+  _dbg("layout firstTable")
   local firstTable = self.tables[1]
   firstTable:layout()
   local m = firstTable.metrics
@@ -152,6 +173,7 @@ function ScoreSheets:init(makeTeams)
   }
   self._nameData = nameData
 --**********TOO FAR
+  _dbg("name fields begin")
   for i, entry in ipairs(nameData) do
     local y = entry.y
     local slotTeam = entry.team
@@ -256,16 +278,17 @@ function ScoreSheets:init(makeTeams)
     
     nameFields[i] = tf
   end
+  _dbg("name fields done")
   self._rawNameFields = nameFields
-  
+  _dbg("keyboard handler")
   self.kb = KeyboardHandler()
-  
   self.kb:start()
-  
+  _dbg("keyboard avoider")
   self.kbAvoider = KeyboardAvoider(self.kb)
   self.kbAvoider:registerFields(table.unpack(nameFields))
   
   -- Animate the *whole Codea view* like the demo (no Codea tween)
+  _dbg("keyboard avoider delegate")
   local hv = _resolveHostView() or (objc.viewer and objc.viewer.view)
   if hv then
     local base = hv.frame
@@ -293,7 +316,9 @@ function ScoreSheets:init(makeTeams)
   end
   
   self.kbAvoider:start()
+  _dbg("_loadLocalGame")
   self:_loadLocalGame()
+  _dbg("exit")
 end
 
 function ScoreSheets:draw()
