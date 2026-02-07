@@ -88,13 +88,27 @@ function drawCell(x,y,w,h, label, fontSz, weight)
   popStyle()
 end
 
+-- Dev logger: writes to both Codea console (`print`) and Xcode console (`objc.log`).
+function devLog(...)
+  local parts = {}
+  for i = 1, select("#", ...) do
+    parts[#parts + 1] = tostring(select(i, ...))
+  end
+  local msg = table.concat(parts, " ")
+  print(msg)
+  if objc and objc.log then
+    msg = "🧑‍💻 " .. msg
+    objc.log(msg)
+  end
+end
+
 -------------------------------------------------
 -- Globals
 -------------------------------------------------
 sheets = nil
 
 function setup()
-  print("SETUP REACHED")
+  devLog("SETUP REACHED")
   viewer.mode = FULLSCREEN
   parameter.action("Save Game", function()
     saveGameState()
@@ -113,25 +127,12 @@ function setup()
   parameter.number("headerGap",             0,  20, layout.headerGap,            function(v) layout.headerGap=v            end)
   parameter.number("teamGap",               0,  20, layout.teamGap,              function(v) layout.teamGap=v              end)
   
-  local function _log(...)
-    if objc and objc.log then objc.log(...) else print(...) end
-  end
-  
   -- Start with your existing 'teams' object for the first table
-  local function _setupSheets()
-    _log("[SETUP] ScoreSheets init start")
-    sheets = ScoreSheets(function() return teams end)
-    _log("[SETUP] ScoreSheets init done")
-  end
-  
-  local ok, err = xpcall(_setupSheets, function(e)
-    return debug.traceback(e, 2)
-  end)
-  if not ok then
-    _G._lastSetupError = tostring(err)
-    _log("[SETUP ERROR]", _G._lastSetupError)
-  end
-  
+  sheets = ScoreSheets()
+
+  devLog("ScoreSheets exists: ", ScoreSheets ~= nil)
+  devLog("ScoreSheets instance exists: ", sheets ~= nil)
+
   --game persistence:
   
   loadGameState()
@@ -139,7 +140,7 @@ function setup()
   lifecycle = LifecycleObserver()
   
   function persist(reason)
-    print("[LIFECYCLE]", reason, "→ saving game state")
+    devLog("[LIFECYCLE]", reason, "-> saving game state")
     local t = os.time()
     saveLocalData("lastSaveEpoch", t)
     saveLocalData("lastSaveReason", reason or "")
@@ -163,58 +164,19 @@ function setup()
   
   if lastEpoch then
     local pretty = os.date("%b %d, %Y, %I:%M %p", lastEpoch)
-    print("[SAVE CHECK] last save:", pretty, "reason:", lastReason)
+    devLog("[SAVE CHECK] last save:", pretty, "reason:", lastReason)
   else
-    print("[SAVE CHECK] no prior save recorded")
+    devLog("[SAVE CHECK] no prior save recorded")
   end
   
   videoPlayer = CodeaAVPlayer()
   
 end
 
--- function draw()
---   background(250, 150, 50)
---   fill(255)
---   text("HELLO FROM SPARTS", WIDTH/2, HEIGHT/2)
--- end
-
 function draw()
-  background(100, 30, 200)
-  
-  -- Optional title (fixed at top)
-  pushStyle()
-  fill(0) ; font("HelveticaNeue-Bold") ; fontSize(28) ; textAlign(LEFT)
-  text("Card Game Scoresheet", 16, HEIGHT - 24)
-  popStyle()
-  
-  -- Draw the stack of tables + New Hand button
-  if sheets and sheets.draw then
-    local ok, err = xpcall(function() sheets:draw() end, function(e)
-      return debug.traceback(e, 2)
-    end)
-    if not ok then
-      _G._lastDrawError = tostring(err)
-      if objc and objc.log then objc.log("[DRAW ERROR]", _G._lastDrawError) end
-      fill(255, 80, 80)
-      text("DRAW ERROR — see console", WIDTH/2, HEIGHT/2)
-    end
-  elseif _G._lastSetupError then
-    fill(255, 80, 80)
-    text("SETUP ERROR — see console", WIDTH/2, HEIGHT/2)
-    text(tostring(_G._lastSetupError), WIDTH/2, HEIGHT/2 - 90)
-  end
-end
-
-function touched(t)
-  if sheets and sheets.touched then
-    local ok, err = xpcall(function() sheets:touched(t) end, function(e)
-      return debug.traceback(e, 2)
-    end)
-    if not ok then
-      if objc and objc.log then objc.log("[TOUCH ERROR]", tostring(err)) end
-    end
-    return
-  end
+  background(250, 150, 50)
+  fill(255)
+  text("HELLO FROM SPARTS", WIDTH/2, HEIGHT/2)
 end
 
 function willClose()

@@ -1,3 +1,24 @@
+-- ScoreSheets = class()
+
+-- function ScoreSheets:init()
+--   objc.log("inside OverlayDrawer: now!!!")
+--   self._scrollTween = nil
+--   self.makeTeams = makeTeams or self._defaultTeams
+--   self.tables    = {}
+--   self.scrollY   = 0
+--   self._kbShiftY = 0
+--   self._kbTween = nil
+--   devLog("notchTracker")
+--   self.notchTracker = newNotchTracker()
+--   devLog("archiveExporter")
+--   self.archiveExporter = ArchiveExporter()
+--   devLog("archiveBrowser")
+--   self.archiveBrowser = ArchiveBrowser()
+--   self._archiveWasActive = false
+--   self._archiveLoading = false
+--   self._archiveLoadStage = nil  -- nil / 0 / 1
+-- end
+
 function ScoreSheets:_drawNonInteractiveOverlay(isOn, msg)
   if not isOn then return end
   

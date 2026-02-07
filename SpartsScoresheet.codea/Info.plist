@@ -4,15 +4,14 @@
 <dict>
 	<key>Buffer Order</key>
 	<array>
+		<string>Main</string>
 		<string>Helpers</string>
 		<string>IncrementingCell</string>
 		<string>Sensor</string>
 		<string>UIKit</string>
 		<string>SaveAndLoad</string>
 		<string>AchiveExporter</string>
-		<string>Main</string>
 		<string>CheckboxCell</string>
-		<string>OverlayDrawer</string>
 		<string>ArchiveBrowser</string>
 		<string>Scratch</string>
 		<string>Tests</string>
@@ -22,8 +21,9 @@
 		<string>ScoreTable</string>
 		<string>ScoreSheetsCore</string>
 		<string>ScoreSheetsFuncs</string>
+		<string>OverlayDrawer</string>
 		<string>Class</string>
-		<string>ScoreRules </string>
+		<string>ScoreRules</string>
 	</array>
 	<key>Selected Buffer</key>
 	<dict>

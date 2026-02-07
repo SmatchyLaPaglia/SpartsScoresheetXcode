@@ -77,12 +77,12 @@ function loadGameState()
     tables[hi] = ScoreTable(teams)
   end
   
-  sheets.tables = tables
-  sheets.scrollY = 0
-  sheets.ledger = nil   -- force recompute next draw
+  -- sheets.tables = tables
+  -- sheets.scrollY = 0
+  -- sheets.ledger = nil   -- force recompute next draw
   
-  sheets = ScoreSheets(function() return tables[1].teams end)
-  sheets.tables = tables
+  -- sheets = ScoreSheets(function() return tables[1].teams end)
+  -- sheets.tables = tables
   
   print("[LOAD] done")
 end

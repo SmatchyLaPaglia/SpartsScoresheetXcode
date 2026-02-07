@@ -1,3 +1,4 @@
+
 -- ScoreSheets.lua
 _keyboardVisible = false
 _keyboardHeight  = 0
@@ -320,7 +321,7 @@ self.kbAvoider:start()
   devLog("_loadLocalGame")
   self:_loadLocalGame()
   devLog("exit")
-end 
+end
 
 function ScoreSheets:draw()
   self._inDraw = true
@@ -417,7 +418,7 @@ function ScoreSheets:draw()
       -- first hand at scrollY==0 is centered; later hands are drawn LOWER (negative offset)
       translate(0, - (i-1) * d + sy)
       
-      -- Hand labels 
+      -- Hand labels
       local m = self.tables[i].metrics
       if m then
         pushStyle()
@@ -519,7 +520,7 @@ function ScoreSheets:draw()
         rect(tx, tyNewGame, tw, th, 10)
         
         fill(140)
-        font("Chalkduster") 
+        font("Chalkduster")
         fontSize(18)
         textAlign(CENTER)
         textMode(CENTER)
@@ -1102,7 +1103,7 @@ function ScoreSheets:_loadLocalGame()
   
   if dump.inputs then
     self.tables = self:_tablesFromInputs(dump.inputs)
-    self.ledger = nil 
+    self.ledger = nil
   end
 end
 
@@ -1259,7 +1260,7 @@ function ScoreSheets:_resetAll()
       tf.text = ph
       self:_onNameFieldChanged(tf)
     end
-  end  
+  end
   
   self._gameOver = false
   self._winningTeam = nil
@@ -1400,7 +1401,7 @@ function ScoreSheets:_saveArchiveSnapshot()
   -- restore
   self.scrollY = oldScrollY
   self._kbShiftY = oldKbShift
-  if false then 
+  if false then
     -- save image
     saveImage(asset.SpartsArchives  .. baseName .. ".png", rt)
   end
