@@ -128,7 +128,7 @@ function setup()
   parameter.number("teamGap",               0,  20, layout.teamGap,              function(v) layout.teamGap=v              end)
   
   -- Start with your existing 'teams' object for the first table
-  sheets = ScoreSheets()
+  sheets = ScoreSheets(function() return teams end)
 
   devLog("ScoreSheets exists: ", ScoreSheets ~= nil)
   devLog("ScoreSheets instance exists: ", sheets ~= nil)

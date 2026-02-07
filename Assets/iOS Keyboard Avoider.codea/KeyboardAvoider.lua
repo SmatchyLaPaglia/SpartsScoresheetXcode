@@ -1,5 +1,13 @@
 KeyboardAvoider = class()
 
+local function finiteNumber(v, fallback)
+    local n = tonumber(v)
+    if not n then return fallback end
+    if n ~= n then return fallback end
+    if n == math.huge or n == -math.huge then return fallback end
+    return n
+end
+
 function KeyboardAvoider:init(kbHandler)
     self.kb = kbHandler
     self.fields = {}
@@ -132,7 +140,7 @@ function KeyboardAvoider:_activeField()
 end
 
 function KeyboardAvoider:_applyShift(shiftY, animated)
-    self.shiftY = shiftY or 0
+    self.shiftY = finiteNumber(shiftY, 0) or 0
     
     if self.avoidanceDelegate then
         self.avoidanceDelegate(self.shiftY, animated)
@@ -144,9 +152,13 @@ function KeyboardAvoider:_applyShift(shiftY, animated)
             local tf = self.fields[i]
             local base = self.baseFrames[tf]
             if base then
+                local bx = finiteNumber(base.origin.x, 0) or 0
+                local by = finiteNumber(base.origin.y, 0) or 0
+                local bw = finiteNumber(base.size.width, 0) or 0
+                local bh = finiteNumber(base.size.height, 0) or 0
                 tf.frame = objc.rect(
-                base.origin.x, base.origin.y - self.shiftY,
-                base.size.width, base.size.height
+                bx, by - self.shiftY,
+                bw, bh
                 )
             end
         end
@@ -160,7 +172,7 @@ function KeyboardAvoider:_applyShift(shiftY, animated)
 end
 
 function KeyboardAvoider:_shiftToAvoidKeyboard(kh, animated)
-    kh = kh or 0
+    kh = finiteNumber(kh, 0) or 0
     if kh <= 0 then
         self:_applyShift(0, animated)
         return
@@ -173,16 +185,22 @@ function KeyboardAvoider:_shiftToAvoidKeyboard(kh, animated)
     end
     
     -- Keyboard top in UIKit coords
-    local keyboardTopY = HEIGHT - kh
+    local keyboardTopY = finiteNumber(HEIGHT, 0) - kh
     
     local f = self.baseFrames[active] or active.frame
-    local activeMaxY = f.origin.y + f.size.height
+    if not f then
+        self:_applyShift(0, animated)
+        return
+    end
     
-    local overlap = activeMaxY - keyboardTopY
+    local fy = finiteNumber(f.origin and f.origin.y, 0) or 0
+    local fh = finiteNumber(f.size and f.size.height, 0) or 0
+    local activeMaxY = fy + fh
+    
+    local overlap = finiteNumber(activeMaxY - keyboardTopY, 0) or 0
     if overlap > 0 then
-        self:_applyShift(overlap + self.padding, animated)
+        self:_applyShift(overlap + (finiteNumber(self.padding, 0) or 0), animated)
     else
         self:_applyShift(0, animated)
     end
 end
-

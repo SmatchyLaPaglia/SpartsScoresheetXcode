@@ -300,14 +300,23 @@ function ScoreSheets:init(makeTeams)
     local base = hv.frame
     
     self.kbAvoider:setAvoidanceDelegate(function(shiftY, animated)
-      local dy = shiftY or 0
+      local dy = tonumber(shiftY) or 0
+      if dy ~= dy or dy == math.huge or dy == -math.huge then dy = 0 end
       
       local function setFrame()
+        local bx = tonumber(base.origin.x) or 0
+        local by = tonumber(base.origin.y) or 0
+        local bw = tonumber(base.size.width) or 0
+        local bh = tonumber(base.size.height) or 0
+        if bx ~= bx then bx = 0 end
+        if by ~= by then by = 0 end
+        if bw ~= bw then bw = 0 end
+        if bh ~= bh then bh = 0 end
         hv.frame = objc.rect(
-        base.origin.x,
-        base.origin.y - dy,
-        base.size.width,
-        base.size.height
+        bx,
+        by - dy,
+        bw,
+        bh
       )
     end
     
@@ -762,7 +771,6 @@ if self.archiveExporter and self._archivingStage == 1 then
   if self._resetAfterArchive then
     self._resetAfterArchive = false
     self:_resetAll()
-    
   end
 end
 
@@ -1270,7 +1278,14 @@ function ScoreSheets:_resetAll()
   self._winningTeam = nil
   self._winningMode = nil
   
+  -- Clear both persistence paths used by this app.
   clearLocalData()
+  saveText(asset.localGame, "")
+  
+  -- Persist the blank game immediately so simulator stop/restart reopens clean.
+  if saveGameState then
+    saveGameState()
+  end
 end
 
 function ScoreSheets:_contentSpan()
