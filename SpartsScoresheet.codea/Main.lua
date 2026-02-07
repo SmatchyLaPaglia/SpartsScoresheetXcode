@@ -177,6 +177,11 @@ function draw()
   background(250, 150, 50)
   fill(255)
   text("HELLO FROM SPARTS", WIDTH/2, HEIGHT/2)
+    if sheets then sheets:draw() end
+end
+
+function touched(t)
+  if sheets and sheets:touched(t) then return end
 end
 
 function willClose()
