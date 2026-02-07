@@ -58,9 +58,40 @@ end
 ScoreTable = class()
 
 function ScoreTable:init(teams)
+  local function slog(...)
+    if devLog then
+      devLog(...)
+    else
+      print(...)
+    end
+  end
+  
+  local function ensureTeamShape(t)
+    t = t or {}
+    t.players = t.players or { {}, {} }
+    t.players[1] = t.players[1] or {}
+    t.players[2] = t.players[2] or {}
+    t.players[1].name = t.players[1].name or "Player 1"
+    t.players[2].name = t.players[2].name or "Player 2"
+    t.players[1].bid  = t.players[1].bid
+    t.players[1].took = t.players[1].took
+    t.players[2].bid  = t.players[2].bid
+    t.players[2].took = t.players[2].took
+    if t.hearts == nil then t.hearts = nil end
+    t.queensSpades = (t.queensSpades == true)
+    t.moonShot     = (t.moonShot == true)
+    return t
+  end
+  
+  teams = teams or {}
+  teams[1] = ensureTeamShape(teams[1])
+  teams[2] = ensureTeamShape(teams[2])
+  slog("[ScoreTable:init] teams normalized")
+  
   self.teams = teams
   self.cells = {}
   self._scrollY = 0
+  slog("[ScoreTable:init] creating incrementing cells")
   -- Incrementing cells (10)
   self.cells.t1_p1_bid   = IncrementingCell(0,0,0,0, teams[1].players[1].bid)
   self.cells.t1_p1_took  = IncrementingCell(0,0,0,0, teams[1].players[1].took)
@@ -73,12 +104,15 @@ function ScoreTable:init(teams)
   self.cells.t2_p2_bid   = IncrementingCell(0,0,0,0, teams[2].players[2].bid)
   self.cells.t2_p2_took  = IncrementingCell(0,0,0,0, teams[2].players[2].took)
   self.cells.t2_hearts   = IncrementingCell(0,0,0,0, teams[2].hearts)
+  slog("[ScoreTable:init] incrementing cells ready")
   
   -- Checkbox cells (4)
+  slog("[ScoreTable:init] creating checkbox cells")
   self.cells.t1_qs       = CheckboxCell(0,0,0,0, teams[1].queensSpades)
   self.cells.t1_moon     = CheckboxCell(0,0,0,0, teams[1].moonShot)
   self.cells.t2_qs       = CheckboxCell(0,0,0,0, teams[2].queensSpades)
   self.cells.t2_moon     = CheckboxCell(0,0,0,0, teams[2].moonShot)
+  slog("[ScoreTable:init] checkbox cells ready")
   
   -- Optional bounds for incrementing cells
   for k,c in pairs(self.cells) do
@@ -99,6 +133,7 @@ function ScoreTable:init(teams)
   end
   
   -- Long-press sensors (names + header)
+  slog("[ScoreTable:init] creating sensors")
   self.lp = {
     t1_p1_name = Sensor{ parent = {x=0,y=0,w=0,h=0} },
     t1_p2_name = Sensor{ parent = {x=0,y=0,w=0,h=0} },
@@ -118,6 +153,7 @@ function ScoreTable:init(teams)
     end)
   end
   self:_skinInputs()
+  slog("[ScoreTable:init] done")
 end
 
 -- Toggle LP (used by ScoreSheets while dragging)
@@ -613,4 +649,3 @@ function ScoreTable:touched(t)
   
   return handled
 end
-

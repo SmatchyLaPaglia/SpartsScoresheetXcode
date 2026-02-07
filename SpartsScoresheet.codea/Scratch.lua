@@ -23,13 +23,8 @@ function ScoreSheets:init(makeTeams)
   self.scrollY   = 0
   self._kbShiftY = 0
   self._kbTween = nil
-  
-  if false then
-    self.notchTracker = newNotchTracker()
-    devLog("notchTracker instantiated")
-  end
-  
-  
+  self.notchTracker = newNotchTracker()
+  devLog("notchTracker instantiated")
   self.archiveExporter = ArchiveExporter()
   devLog("archiveExporter instantiated")
   self.archiveBrowser = ArchiveBrowser()
@@ -66,8 +61,18 @@ function ScoreSheets:init(makeTeams)
   
   -- Start with ONE table
   devLog("ScoreTable create")
-  table.insert(self.tables, ScoreTable(self.makeTeams(1)))
-  if true then devLog("[BAIL POINT REACHED]"); return; end
+  local teams1 = self.makeTeams and self.makeTeams(1) or nil
+  local okST, stOrErr = xpcall(function()
+    return ScoreTable(teams1)
+  end, function(e)
+    return debug.traceback(e, 2)
+  end)
+  if okST and stOrErr then
+    table.insert(self.tables, stOrErr)
+  else
+    devLog("[ScoreSheets:init] ScoreTable() failed:", stOrErr)
+    return
+  end
   devLog("ScoreTable created")
   
   -- Scroll sensor (whole screen)
@@ -78,7 +83,7 @@ function ScoreSheets:init(makeTeams)
     startY   = 0,
     startSY  = 0
   }
-
+  
   local DRAG_THRESH = 10
   self.scroll.sensor:onTouched(function(ev)
     local t = ev.touch
@@ -104,7 +109,7 @@ function ScoreSheets:init(makeTeams)
       self.scroll.sensor.doNotInterceptTouches = true
     end
   end)
-
+  
   -- Meanness toggle (scrolls with first sheet, lives where Reset All used to be)
   devLog("tzBtn sensor")
   self.tzBtn = {
@@ -171,7 +176,7 @@ function ScoreSheets:init(makeTeams)
     { y = m.t2_row2, team = 2, player = 2 },
   }
   self._nameData = nameData
-
+  
   --**********TOO FAR
   devLog("name fields begin")
   for i, entry in ipairs(nameData) do
@@ -277,46 +282,46 @@ function ScoreSheets:init(makeTeams)
   end
   
   nameFields[i] = tf
-end
+  end
 
-devLog("name fields done")
-self._rawNameFields = nameFields
-devLog("keyboard handler")
-self.kb = KeyboardHandler()
-self.kb:start()
-devLog("keyboard avoider")
-self.kbAvoider = KeyboardAvoider(self.kb)
-self.kbAvoider:registerFields(table.unpack(nameFields))
+  devLog("name fields done")
+  self._rawNameFields = nameFields
+  devLog("keyboard handler")
+  self.kb = KeyboardHandler()
+  self.kb:start()
+  devLog("keyboard avoider")
+  self.kbAvoider = KeyboardAvoider(self.kb)
+  self.kbAvoider:registerFields(table.unpack(nameFields))
 
--- Animate the *whole Codea view* like the demo (no Codea tween)
-devLog("keyboard avoider delegate")
-local hv = _resolveHostView() or (objc.viewer and objc.viewer.view)
-if hv then
-  local base = hv.frame
-  
-  self.kbAvoider:setAvoidanceDelegate(function(shiftY, animated)
-    local dy = shiftY or 0
+  -- Animate the *whole Codea view* like the demo (no Codea tween)
+  devLog("keyboard avoider delegate")
+  local hv = _resolveHostView() or (objc.viewer and objc.viewer.view)
+  if hv then
+    local base = hv.frame
     
-    local function setFrame()
-      hv.frame = objc.rect(
-      base.origin.x,
-      base.origin.y - dy,
-      base.size.width,
-      base.size.height
-    )
-  end
-  
-  if animated then
-    objc.UIView:animateWithDuration_animations_(self.kbAvoider.animDuration or 0.25, setFrame)
+    self.kbAvoider:setAvoidanceDelegate(function(shiftY, animated)
+      local dy = shiftY or 0
+      
+      local function setFrame()
+        hv.frame = objc.rect(
+        base.origin.x,
+        base.origin.y - dy,
+        base.size.width,
+        base.size.height
+      )
+    end
+    
+    if animated then
+      objc.UIView:animateWithDuration_animations_(self.kbAvoider.animDuration or 0.25, setFrame)
+    else
+      setFrame()
+    end
+  end)
   else
-    setFrame()
+    print("[ScoreSheets] No host view for keyboard avoidance")
   end
-end)
-else
-  print("[ScoreSheets] No host view for keyboard avoidance")
-end
 
-self.kbAvoider:start()
+  self.kbAvoider:start()
   devLog("_loadLocalGame")
   self:_loadLocalGame()
   devLog("exit")
