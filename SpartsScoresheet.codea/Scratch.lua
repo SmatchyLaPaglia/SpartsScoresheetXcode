@@ -55,6 +55,7 @@ function ScoreSheets:init(makeTeams)
   self._scrollHintActive = false
   self._scrollHintDismissOnTouch = false
   self._scrollHintStartedAt = nil
+  self._scrollHintMessage = "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
   function self:_effectiveScrollY()
     return (self.scrollY or 0) + (self._kbShiftY or 0)
   end
@@ -762,7 +763,7 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   textMode(CENTER)
   
   local cx, cy = WIDTH/2, HEIGHT/2
-  text("SWIPE WITH TWO FINGERS\nTO SCROLL", cx, cy)
+  text(self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN", cx, cy)
   
   -- arrows (text)
   fontSize(44)
@@ -896,11 +897,29 @@ function ScoreSheets:touched(t)
     end
   end
   
-  local function showScrollHintAgain()
+  local function isRightSideTouch(x)
+    local firstTable = self.tables and self.tables[1]
+    local m = firstTable and firstTable.metrics
+    local rightEdge = m and m.x and m.x[8]
+    return rightEdge and x >= rightEdge
+  end
+
+  local function showScrollHintAgain(msg)
+    self._scrollHintMessage = msg or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
     self._scrollHintActive = true
     self._scrollHintDismissOnTouch = true
     self._scrollHintStartedAt = ElapsedTime
     self._scrollHintAlpha = 220
+  end
+
+  if t.state == BEGAN then
+    local rightSide = isRightSideTouch(t.x)
+    if rightSide then
+      self._scrollHintActive = false
+      self._scrollHintAlpha = 0
+      self._scrollHintDismissOnTouch = false
+      self._scrollHintMessage = "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
+    end
   end
   
   ------------------------------------------------------------
@@ -943,14 +962,20 @@ function ScoreSheets:touched(t)
       and self._touchCount == 1
       and ElapsedTime > (self._ignoreFutileUntil or 0)
       and (self:_contentSpan() > 0) then
-        
+
         local dx = t.x - rec.x
         local dy = t.y - rec.y
-        
+
         -- vertical intent: big enough + mostly vertical
         if math.abs(dy) > 18 and math.abs(dy) > math.abs(dx) * 1.5 then
           rec.shown = true
-          showScrollHintAgain()
+          if isRightSideTouch(t.x) then
+            -- Right-side drags should scroll directly and stay quiet.
+            self._scrollHintActive = false
+            self._scrollHintAlpha = 0
+          else
+            showScrollHintAgain("SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN")
+          end
         end
       end
     end
@@ -961,13 +986,48 @@ function ScoreSheets:touched(t)
   end
   
   self._touchCount = activeCount()
-  
+
   ------------------------------------------------------------
-  -- 2) Two-finger scroll mode: EXACTLY TWO touches, always swallow
+  -- 2) Fixed buttons (checked before scroll handling so right-side
+  --    buttons like New Game / Archives receive taps)
+  ------------------------------------------------------------
+  if self.newBtn and self.newBtn.sensor and self.newBtn.sensor:touched(t) then return true end
+  if self.tzBtn  and self.tzBtn.sensor  and self.tzBtn.sensor:touched(t)  then return true end
+  if self.newGameBtn and self.newGameBtn.sensor and self.newGameBtn.sensor:touched(t) then return true end
+  if self.archiveBtn and self.archiveBtn.sensor and self.archiveBtn.sensor:touched(t) then return true end
+
+  ------------------------------------------------------------
+  -- 3) Two-finger scroll mode: EXACTLY TWO touches, always swallow
   --    and NEVER allow cells to activate while in this mode.
   ------------------------------------------------------------
   local twoFinger = (self.twoFingerScroll == true)
   local inScrollNow = false
+
+  -- Single-finger drag on the right-side score columns should scroll the sheet.
+  if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x) then
+    if t.state == MOVING and self.scroll.mode ~= "idle" then
+      local dy = t.y - self.scroll.startY
+      if self.scroll.mode == "maybe-drag" and math.abs(dy) > 10 then
+        self.scroll.mode = "dragging"
+      end
+      if self.scroll.mode == "dragging" then
+        self.scrollY = self.scroll.startSY + dy
+        self:_clampScroll()
+        return true
+      end
+    elseif t.state == ENDED or t.state == CANCELLED then
+      self.scroll.mode = "idle"
+      self.scroll.sensor.doNotInterceptTouches = true
+    end
+  end
+
+  if t.state == BEGAN and self._touchCount == 1 and isRightSideTouch(t.x) then
+    self.scroll.mode = "maybe-drag"
+    self.scroll.startY = t.y
+    self.scroll.startSY = self.scrollY
+    self.scroll.sensor.doNotInterceptTouches = true
+    return true
+  end
   
   if twoFinger and self._touchCount == 2 then
     local id1, id2 = firstTwoIds()
@@ -1037,7 +1097,7 @@ function ScoreSheets:touched(t)
   end
   
   ------------------------------------------------------------
-  -- 3) If an IncrementingCell owns this touch id, ALWAYS forward
+  -- 4) If an IncrementingCell owns this touch id, ALWAYS forward
   --    (so it can release ownership on ENDED/CANCELLED)
   ------------------------------------------------------------
   if IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id] then
@@ -1053,15 +1113,7 @@ function ScoreSheets:touched(t)
   end
   
   ------------------------------------------------------------
-  -- 5) Fixed buttons
-  ------------------------------------------------------------
-  if self.newBtn and self.newBtn.sensor and self.newBtn.sensor:touched(t) then return true end
-  if self.tzBtn  and self.tzBtn.sensor  and self.tzBtn.sensor:touched(t)  then return true end
-  if self.newGameBtn and self.newGameBtn.sensor and self.newGameBtn.sensor:touched(t) then return true end
-  if self.archiveBtn and self.archiveBtn.sensor and self.archiveBtn.sensor:touched(t) then return true end
-  
-  ------------------------------------------------------------
-  -- 6) Normal routing
+  -- 5) Normal routing
   ------------------------------------------------------------
   if forwardTouchToTables(t) then return true end
   return false
