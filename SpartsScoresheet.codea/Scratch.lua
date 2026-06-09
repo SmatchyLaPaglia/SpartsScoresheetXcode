@@ -339,6 +339,15 @@ end
 function ScoreSheets:draw()
   self._inDraw = true
   
+  -- While AVPlayer is on screen, keep text fields disabled.
+  if self._videoFieldsDisabled then
+    local videoOpen = (videoPlayer and videoPlayer.isPresented and videoPlayer:isPresented()) or false
+    if not videoOpen then
+      self._videoFieldsDisabled = false
+      self:_setNameFieldsEnabled(true)
+    end
+  end
+  
   local ab = self.archiveBrowser
   if ab then
     if ab.active and not self._archiveWasActive then
@@ -899,6 +908,11 @@ function ScoreSheets:touched(t)
     local dx = t.x - self._spartsHit.x
     local dy = t.y - self._spartsHit.y
     if (dx*dx + dy*dy) <= (self._spartsHit.r * self._spartsHit.r) then
+      self._videoFieldsDisabled = true
+      self:_setNameFieldsEnabled(false)
+      if objc and objc.viewer and objc.viewer.view then
+        objc.viewer.view:endEditing_(true)
+      end
       videoPlayer:showAndAutoplayMOV(asset.Sparts_Scoresheet_Intro)
       return true
     end

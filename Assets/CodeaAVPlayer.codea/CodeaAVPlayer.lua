@@ -44,3 +44,17 @@ function CodeaAVPlayer:showAndAutoplayMOV(videoAsset)
   end
   )
 end
+
+function CodeaAVPlayer:isPresented()
+  local vc = self._vc
+  if not vc then return false end
+  
+  local viewer = objc.viewer
+  if not viewer then return false end
+  
+  local pvc = viewer.presentedViewController
+  if pvc and pvc == vc then return true end
+  
+  -- Fallback if equality bridging is inconsistent.
+  return vc.presentingViewController ~= nil
+end
