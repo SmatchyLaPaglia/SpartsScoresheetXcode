@@ -50,3 +50,6 @@ xcrun simctl spawn 0EF8AE50-8899-40DD-A77E-359C06732886 log stream \
 - After BUILD FAILED: extract compiler error, write correction spec, spawn subagent
 - Do not self-evaluate screenshots — report observation and wait for user confirmation
 - Maximum 3 correction attempts per task before escalating to user
+
+## Committing
+- in git commits do not use "Co-Authored by" instead use "Executed by"
