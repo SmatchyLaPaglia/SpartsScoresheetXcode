@@ -23,7 +23,8 @@ function IncrementingCell:init(x, y, w, h, initialValue)
   -- pixels per increment while dragging (tune to taste)
   self.stepPx      = 22
   self.dragLastX   = nil   -- last x we sampled
-  self.dragAccum   = 0     -- accumulated horizontal pixels since last step
+  self.dragLastY   = nil
+  self.dragAccum   = 0     -- accumulated pixels since last step
   
   self.isPressed = false
   
@@ -53,15 +54,18 @@ function IncrementingCell:init(x, y, w, h, initialValue)
     local t = event.touch
     if t.state == BEGAN then
       self.dragLastX = t.x
+      self.dragLastY = t.y
       self.dragAccum = 0
       return
     end
     
     if (t.state == MOVING or t.state == ENDED) and self.dragLastX then
-      -- accumulate horizontal motion
+      -- accumulate horizontal + vertical motion
       local dx = t.x - self.dragLastX
       self.dragLastX = t.x
-      self.dragAccum = self.dragAccum + dx
+      local dy = t.y - self.dragLastY
+      self.dragLastY = t.y
+      self.dragAccum = self.dragAccum + dx + dy
       
       -- how many full steps worth of motion have we accumulated?
       local steps = 0
@@ -83,6 +87,7 @@ function IncrementingCell:init(x, y, w, h, initialValue)
       
       if t.state == ENDED or t.state == CANCELLED then
         self.dragLastX = nil
+        self.dragLastY = nil
         self.dragAccum = 0
         if self._pulseTween then tween.stop(self._pulseTween); self._pulseTween = nil end
         self._pulseTween = tween(0.35, self, { pulse = 0 }, nil, function()
