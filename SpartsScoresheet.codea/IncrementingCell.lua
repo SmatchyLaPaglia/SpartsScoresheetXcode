@@ -125,8 +125,8 @@ function IncrementingCell:draw()
   -- pop-up feedback: float upward + enlarge briefly so it’s visible above the finger
   if (self.pulse or 0) > 0 then
     local p = self.pulse
-    local popY  = (self.h * 0.18 - self.h * 0.15) * p
     local popFS = f + (self.h * 0.7) * p
+    local popY  = (self.h * 0.5 + (f + self.h * 0.7) * 0.3) * p
     
     fontSize(popFS)
     -- pop color: lerp from base (blue) -> red as p goes to 1
