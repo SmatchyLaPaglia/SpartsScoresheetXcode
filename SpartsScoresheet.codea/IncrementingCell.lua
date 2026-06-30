@@ -75,7 +75,7 @@ function IncrementingCell:init(x, y, w, h, initialValue)
         -- step once per unit so boundary logic ("--" between min/max) still applies
         local dir = (steps > 0) and 1 or -1
         for _ = 1, math.abs(steps) do
-          self:_step(dir)
+          self:_step(dir, "drag")
         end
         -- keep only the remainder so small back-and-forth feels smooth
         self.dragAccum = self.dragAccum - steps * self.stepPx
@@ -93,7 +93,7 @@ function IncrementingCell:init(x, y, w, h, initialValue)
   end)
 
   self.sensor:onTap(function()
-    self:_step(1)
+    self:_step(1, "tap")
   end)
 
 end
@@ -123,10 +123,14 @@ function IncrementingCell:draw()
   end
 
   -- pop-up feedback: float upward + enlarge briefly so it's visible above the finger
+  -- (popY only floats upward for tap — drag stays inside the cell)
   if (self.pulse or 0) > 0 then
     local p = self.pulse
     local popFS = f + (self.h * 0.7) * p
-    local popY  = (self.h * 0.5 + (f + self.h * 0.7) * 0.3) * p
+    local popY  = 0
+    if self._stepSource == "tap" then
+      popY = (self.h * 0.5 + (f + self.h * 0.7) * 0.3) * p
+    end
 
     fontSize(popFS)
     -- pop color: lerp from base (blue) -> red as p goes to 1
@@ -185,7 +189,9 @@ function IncrementingCell:_ownsTouch(t)
 end
 
 -- step by +1 or -1, with "--" between max and min
-function IncrementingCell:_step(delta)
+-- source: "tap" or "drag" — controls pop-up animation behavior
+function IncrementingCell:_step(delta, source)
+  self._stepSource = source or "tap"  -- store for draw() pop-up behavior
   -- if we're unset, first step chooses an endpoint in the step direction
   if not self.hasSet then
     if delta > 0 then self:set(self.min) else self:set(self.max) end

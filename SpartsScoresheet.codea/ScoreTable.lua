@@ -120,6 +120,15 @@ function ScoreTable:init(teams)
       c.min, c.max, c.wrap = 0, 13, true
     end
   end
+
+  -- Drag sensitivity: full "--"→13 range = hearts cell → grand total cell
+  -- HEART(52) + QUEEN(52) + MOON(52) + R1..R6(6×46) + GRAND(69) = 501 px
+  -- 501 / 13 ≈ 38.5 px per step
+  for k,c in pairs(self.cells) do
+    if c.set then
+      c.stepPx = 501 / 13
+    end
+  end
   
   for k, c in pairs(self.cells) do
     if c.set then

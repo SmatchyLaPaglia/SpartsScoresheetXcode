@@ -762,13 +762,15 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   textAlign(CENTER)
   textMode(CENTER)
   
-  local cx, cy = WIDTH/2, HEIGHT/2
+  local cx, cy = WIDTH - 30, HEIGHT/2
+  textAlign(RIGHT)
   text(self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN", cx, cy)
-  
+
   -- arrows (text)
   fontSize(44)
   text("↑", cx, cy + 84)
   text("↓", cx, cy - 84)
+  textAlign(CENTER)
   
   if self._scrollHintAlpha <= 0 then
     self._scrollHintActive = false
@@ -934,7 +936,9 @@ function ScoreSheets:touched(t)
       if objc and objc.viewer and objc.viewer.view then
         objc.viewer.view:endEditing_(true)
       end
-      videoPlayer:showAndAutoplayMOV(asset.Sparts_Scoresheet_Intro)
+      if movieActive then
+        videoPlayer:showAndAutoplayMOV(asset.Sparts_Scoresheet_Intro)
+      end
       return true
     end
   end
@@ -1099,9 +1103,23 @@ function ScoreSheets:touched(t)
   ------------------------------------------------------------
   -- 4) If an IncrementingCell owns this touch id, ALWAYS forward
   --    (so it can release ownership on ENDED/CANCELLED)
+  --    Bypass Y-bounds check so horizontal drags tolerate Y drift.
   ------------------------------------------------------------
   if IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id] then
-    forwardTouchToTables(t)
+    local stepH, gapH = self:_stackMetrics()
+    local d = stepH + gapH
+    for i = 1, #self.tables do
+      local tt = {
+        id       = t.id,
+        state    = t.state,
+        tapCount = t.tapCount,
+        x        = t.x,
+        y        = t.y - ( - (i-1)*d + self.scrollY ),
+        deltaX   = t.deltaX,
+        deltaY   = t.deltaY
+      }
+      if self.tables[i]:touched(tt) then break end
+    end
     return true
   end
   

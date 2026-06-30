@@ -170,7 +170,8 @@ function setup()
   end
   
   videoPlayer = CodeaAVPlayer()
-  
+  movieActive = false  -- gate for SPARTS logo tap → intro video
+
 end
 
 function draw()
