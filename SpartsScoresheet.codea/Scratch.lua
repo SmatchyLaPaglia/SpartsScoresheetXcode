@@ -91,11 +91,23 @@ function ScoreSheets:init(makeTeams)
     if t.state == BEGAN then
       -- cancel any in-flight scroll tween so the user takes control
       if self._scrollTween then tween.stop(self._scrollTween); self._scrollTween = nil end
+      -- Only track right-side touches for single-finger scroll
+      if not isRightSideTouch(t.x) then
+        self.scroll.mode = "idle"
+        self.scroll.sensor.doNotInterceptTouches = true
+        return
+      end
       self.scroll.mode   = "maybe-drag"
       self.scroll.startY = t.y
       self.scroll.startSY= self.scrollY
       self.scroll.sensor.doNotInterceptTouches = true
     elseif t.state == MOVING and self.scroll.mode ~= "idle" then
+      -- Never steal a touch that an IncrementingCell already owns
+      if IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id] then
+        self.scroll.mode = "idle"
+        self.scroll.sensor.doNotInterceptTouches = true
+        return
+      end
       local dy = t.y - self.scroll.startY
       if self.scroll.mode == "maybe-drag" and math.abs(dy) > DRAG_THRESH then
         self.scroll.mode = "dragging"
@@ -762,15 +774,13 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   textAlign(CENTER)
   textMode(CENTER)
   
-  local cx, cy = WIDTH - 30, HEIGHT/2
-  textAlign(RIGHT)
+  local cx, cy = WIDTH * 0.72, HEIGHT/2
   text(self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN", cx, cy)
 
   -- arrows (text)
   fontSize(44)
   text("↑", cx, cy + 84)
   text("↓", cx, cy - 84)
-  textAlign(CENTER)
   
   if self._scrollHintAlpha <= 0 then
     self._scrollHintActive = false
@@ -1008,7 +1018,8 @@ function ScoreSheets:touched(t)
   local inScrollNow = false
 
   -- Single-finger drag on the right-side score columns should scroll the sheet.
-  if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x) then
+  if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x)
+     and not (IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id]) then
     if t.state == MOVING and self.scroll.mode ~= "idle" then
       local dy = t.y - self.scroll.startY
       if self.scroll.mode == "maybe-drag" and math.abs(dy) > 10 then
