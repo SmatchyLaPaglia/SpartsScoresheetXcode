@@ -656,5 +656,11 @@ function ScoreTable:touched(t)
     self.cells.t1_qs.value = false
   end
   
+  -- Autosave on touch completion so accidental termination doesn't lose data
+  if handled and (t.state == ENDED or t.state == CANCELLED) then
+    self:syncBack()
+    if saveGameState then saveGameState() end
+  end
+
   return handled
 end
