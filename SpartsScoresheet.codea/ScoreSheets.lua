@@ -762,15 +762,15 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   textAlign(CENTER)
   textMode(CENTER)
   
-  local cx, cy = WIDTH - 30, HEIGHT/2
-  textAlign(RIGHT)
+  -- Position over the right-side non-interactive columns, fully on screen
+  local cx, cy = WIDTH * 0.72, HEIGHT/2
+  textAlign(CENTER)
   text(self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN", cx, cy)
 
   -- arrows (text)
   fontSize(44)
   text("↑", cx, cy + 84)
   text("↓", cx, cy - 84)
-  textAlign(CENTER)
   
   if self._scrollHintAlpha <= 0 then
     self._scrollHintActive = false
