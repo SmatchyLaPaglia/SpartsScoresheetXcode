@@ -1,2 +1,0 @@
--- ScoreSheetsFuncs.lua
--- Moved into Scratch.lua to ensure Codea/Xcode runner loads the class reliably.
