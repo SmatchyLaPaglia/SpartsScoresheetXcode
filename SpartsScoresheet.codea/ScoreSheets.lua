@@ -758,19 +758,36 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   
   fill(255, 255, 255, self._scrollHintAlpha)
   font("Chalkduster")
-  fontSize(26)
+
+  -- Position entirely within the non-interactive right-side columns.
+  -- m.x[8] is the boundary: columns 1-7 are interactive (NAME..MOON),
+  -- columns 8+ are non-interactive score columns (R1..GRAND).
+  local firstTable = self.tables and self.tables[1]
+  local m = firstTable and firstTable.metrics
+  local rightZoneLeft = (m and m.x and m.x[8]) or (WIDTH * 0.56)
+  local rightZoneW     = WIDTH - rightZoneLeft
+  local pad            = 12  -- breathing room on each side
+
+  local msg = self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
+  local wrapW = math.max(1, rightZoneW - pad * 2)
+
+  -- Use textWrap to ensure no line overflows the available width.
+  fontSize(22)
+  local wrapped = textWrap(msg, wrapW)
+
   textAlign(CENTER)
   textMode(CENTER)
-  
-  -- Position over the right-side non-interactive columns, fully on screen
-  local cx, cy = WIDTH * 0.72, HEIGHT/2
-  textAlign(CENTER)
-  text(self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN", cx, cy)
+  local cx = rightZoneLeft + rightZoneW * 0.5
+  local cy = HEIGHT * 0.5
 
-  -- arrows (text)
-  fontSize(44)
-  text("↑", cx, cy + 84)
-  text("↓", cx, cy - 84)
+  text(wrapped, cx, cy)
+
+  -- arrows (text) — offset below/above the wrapped text block
+  fontSize(36)
+  local _, lines = wrapped:gsub("\n", "")
+  local blockHalfH = (lines + 1) * 22 * 0.65
+  text("↑", cx, cy + blockHalfH + 28)
+  text("↓", cx, cy - blockHalfH - 28)
   
   if self._scrollHintAlpha <= 0 then
     self._scrollHintActive = false
