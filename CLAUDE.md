@@ -84,5 +84,18 @@ LPID=$!; sleep 10; kill $LPID 2>/dev/null; wait $LPID 2>/dev/null
 - Do not self-evaluate screenshots — report observation and wait for user confirmation
 - Maximum 3 correction attempts per task before escalating to user
 
+## Before committing
+- **Run, don't just build.** `xcodebuild build` succeeds for syntax errors that crash at
+  runtime (nil function calls, missing APIs). Always install + launch after building:
+  ```bash
+  xcrun simctl install <sim> <built-app> && xcrun simctl launch <sim> <bundle>
+  ```
+- **Grep for any function before using it.** Codea 3.x has a limited Lua API surface.
+  Before calling any function you haven't seen used in this codebase, grep for it:
+  ```bash
+  grep -rn 'functionName' SpartsScoresheet.codea/
+  ```
+  If it doesn't appear, it probably doesn't exist. Use `pcall` or find an alternative.
+
 ## Committing
 - in git commits do not use "Co-Authored by" instead use "Executed by"
