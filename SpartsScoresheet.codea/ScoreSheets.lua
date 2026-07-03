@@ -55,7 +55,7 @@ function ScoreSheets:init(makeTeams)
   self._scrollHintActive = false
   self._scrollHintDismissOnTouch = false
   self._scrollHintStartedAt = nil
-  self._scrollHintMessage = "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
+  self._scrollHintMessage = "SWIPE ON THE\nRIGHT SIDE TO\nSCROLL SCREEN"
   function self:_effectiveScrollY()
     return (self.scrollY or 0) + (self._kbShiftY or 0)
   end
@@ -766,28 +766,22 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   local m = firstTable and firstTable.metrics
   local rightZoneLeft = (m and m.x and m.x[8]) or (WIDTH * 0.56)
   local rightZoneW     = WIDTH - rightZoneLeft
-  local pad            = 12  -- breathing room on each side
 
-  local msg = self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
-  local wrapW = math.max(1, rightZoneW - pad * 2)
+  -- Short lines that fit within the non-interactive zone at fontSize 16.
+  local msg = self._scrollHintMessage or "SWIPE ON THE\nRIGHT SIDE\nTO SCROLL\nSCREEN"
 
-  -- Use textWrap to ensure no line overflows the available width.
-  fontSize(22)
-  local wrapped = textWrap(msg, wrapW)
-
+  fontSize(16)
   textAlign(CENTER)
   textMode(CENTER)
   local cx = rightZoneLeft + rightZoneW * 0.5
   local cy = HEIGHT * 0.5
 
-  text(wrapped, cx, cy)
+  text(msg, cx, cy)
 
-  -- arrows (text) — offset below/above the wrapped text block
-  fontSize(36)
-  local _, lines = wrapped:gsub("\n", "")
-  local blockHalfH = (lines + 1) * 22 * 0.65
-  text("↑", cx, cy + blockHalfH + 28)
-  text("↓", cx, cy - blockHalfH - 28)
+  -- arrows (text)
+  fontSize(30)
+  text("↑", cx, cy + 72)
+  text("↓", cx, cy - 72)
   
   if self._scrollHintAlpha <= 0 then
     self._scrollHintActive = false
@@ -924,7 +918,7 @@ function ScoreSheets:touched(t)
   end
 
   local function showScrollHintAgain(msg)
-    self._scrollHintMessage = msg or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
+    self._scrollHintMessage = msg or "SWIPE ON THE\nRIGHT SIDE TO\nSCROLL SCREEN"
     self._scrollHintActive = true
     self._scrollHintDismissOnTouch = true
     self._scrollHintStartedAt = ElapsedTime
@@ -937,7 +931,7 @@ function ScoreSheets:touched(t)
       self._scrollHintActive = false
       self._scrollHintAlpha = 0
       self._scrollHintDismissOnTouch = false
-      self._scrollHintMessage = "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
+      self._scrollHintMessage = "SWIPE ON THE\nRIGHT SIDE TO\nSCROLL SCREEN"
     end
   end
   
@@ -995,7 +989,7 @@ function ScoreSheets:touched(t)
             self._scrollHintActive = false
             self._scrollHintAlpha = 0
           else
-            showScrollHintAgain("SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN")
+            showScrollHintAgain("SWIPE ON THE\nRIGHT SIDE TO\nSCROLL SCREEN")
           end
         end
       end
