@@ -1008,7 +1008,9 @@ function ScoreSheets:touched(t)
   local inScrollNow = false
 
   -- Single-finger drag on the right-side score columns should scroll the sheet.
-  if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x) then
+  -- But NOT if an IncrementingCell owns this touch (user is dragging a cell value).
+  local cellOwns = IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id]
+  if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x) and not cellOwns then
     if t.state == MOVING and self.scroll.mode ~= "idle" then
       local dy = t.y - self.scroll.startY
       if self.scroll.mode == "maybe-drag" and math.abs(dy) > 10 then
