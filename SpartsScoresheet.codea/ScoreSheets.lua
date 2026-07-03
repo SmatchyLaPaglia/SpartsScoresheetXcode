@@ -759,26 +759,26 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   fill(255, 255, 255, self._scrollHintAlpha)
   font("Chalkduster")
 
-  -- Position entirely within the non-interactive right-side columns.
-  -- m.x[8] is the boundary: columns 1-7 are interactive (NAME..MOON),
-  -- columns 8+ are non-interactive score columns (R1..GRAND).
+  -- Position entirely within the non-interactive score columns.
+  -- m.x[8]  = left edge of score columns (R1)
+  -- m.x[15] = right edge of score columns (GRAND)
   local firstTable = self.tables and self.tables[1]
   local m = firstTable and firstTable.metrics
-  local rightZoneLeft = (m and m.x and m.x[8]) or (WIDTH * 0.56)
-  local rightZoneW     = WIDTH - rightZoneLeft
-  local pad            = 14
+  local zoneLeft  = (m and m.x and m.x[8])  or (WIDTH * 0.56)
+  local zoneRight = (m and m.x and m.x[15]) or (WIDTH)
+  local zoneW     = zoneRight - zoneLeft
 
   local msg = self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
 
-  fontSize(22)
+  fontSize(38)  -- 22 * 1.75
   textAlign(CENTER)
   textMode(CENTER)
 
-  -- Constrain text to the right zone so it auto-wraps to fit.
-  textWrapWidth(rightZoneW - pad * 2)
+  -- Wrap exactly to the non-interactive cell width.
+  textWrapWidth(zoneW)
   local tw, th = textSize(msg)
 
-  local cx = rightZoneLeft + rightZoneW * 0.5
+  local cx = zoneLeft + zoneW * 0.5
   local cy = HEIGHT * 0.5
 
   text(msg, cx, cy)
