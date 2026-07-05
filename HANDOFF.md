@@ -57,3 +57,4 @@ This was confirmed working in Quozzy. The same approach was applied in attempt 4
 ## Simulators
 - iPhone 17: `1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044` (USE THIS ONE)
 - iPhone 16e: `0EF8AE50-8899-40DD-A77E-359C06732886` (other project, do not use)
+ 

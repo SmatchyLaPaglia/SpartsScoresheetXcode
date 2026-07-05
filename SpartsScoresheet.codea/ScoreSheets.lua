@@ -56,6 +56,11 @@ function ScoreSheets:init(makeTeams)
   self._scrollHintDismissOnTouch = false
   self._scrollHintStartedAt = nil
   self._scrollHintMessage = "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
+
+  -- Dealer tracking
+  self.firstDealer  = 1
+  self.secondDealer = 3
+
   function self:_effectiveScrollY()
     return (self.scrollY or 0) + (self._kbShiftY or 0)
   end
@@ -459,7 +464,7 @@ function ScoreSheets:draw()
         
         local dirs = {"pass left", "pass right", "the Kreskin", "the hold"}
         local dir = dirs[(i - 1) % 4 + 1]
-        text("HAND "..tostring(i)..": "..dir, lx, ly)
+        text("HAND "..tostring(i)..": "..dir.." - "..self:_dealerName(i), lx, ly)
         popStyle()
       end
       self.tables[i]:draw()
@@ -1561,6 +1566,31 @@ end
 function ScoreSheets:_archiveBaseName()
   local date = os.date("%Y-%m-%d_%H%M")
   return date .. "__" .. self:_currentNameStamp()
+end
+
+-------------------------------------------------
+-- Dealer tracking
+-------------------------------------------------
+
+local _partnerOf = {[1]=2, [2]=1, [3]=4, [4]=3}
+
+function ScoreSheets:_dealerForHand(handIndex)
+  local n = ((handIndex - 1) % 4) + 1
+  if n == 1 then return self.firstDealer end
+  if n == 2 then return self.secondDealer end
+  if n == 3 then return _partnerOf[self.firstDealer] end
+  return _partnerOf[self.secondDealer]
+end
+
+function ScoreSheets:_dealerName(handIndex)
+  local pNum = self:_dealerForHand(handIndex)
+  local teamIdx = (pNum <= 2) and 1 or 2
+  local playerIdx = (pNum % 2 == 1) and 1 or 2
+  local t = self.tables[handIndex]
+  if t and t.teams and t.teams[teamIdx] and t.teams[teamIdx].players and t.teams[teamIdx].players[playerIdx] then
+    return t.teams[teamIdx].players[playerIdx].name or ("Player " .. pNum)
+  end
+  return "Player " .. pNum
 end
 
 -------------------------------------------------

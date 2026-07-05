@@ -98,4 +98,5 @@ LPID=$!; sleep 10; kill $LPID 2>/dev/null; wait $LPID 2>/dev/null
   If it doesn't appear, it probably doesn't exist. Use `pcall` or find an alternative.
 
 ## Committing
-- in git commits do not use "Co-Authored by" instead use "Executed by"
+- **Never commit unless the user explicitly instructs you to.** Build, test, report — but wait for the user to say "commit" before touching git.
+- When committing, do not use "Co-Authored by" — use "Executed-by: Claude"
