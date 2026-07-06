@@ -43,7 +43,10 @@ function ArchiveBrowser:_getMetaForBase(base)
   local cached = self.metaCache[base]
   if cached ~= nil then return (cached == false) and nil or cached end
   
-  local s = readText(asset .. "SpartsArchives/" .. base .. ".json")
+  local s = readText("Documents:SpartsArchives_" .. base .. ".json")
+  if not s or s == "" then
+    s = readText(asset .. "SpartsArchives_" .. base .. ".json")
+  end
   if not s or s == "" then self.metaCache[base] = false; return nil end
   
   local ok, t = pcall(json.decode, s)
@@ -178,8 +181,10 @@ function ArchiveBrowser:_setVY(i, v)
 end
 
 function ArchiveBrowser:loadIndex()
-  local indexPath = asset .. "SpartsArchives/index.json"
-  local s = readText(indexPath)
+  local s = readText("Documents:SpartsArchives_index.json")
+  if not s or s == "" then
+    s = readText(asset .. "SpartsArchives_index.json")
+  end
   if not s or s == "" then
     self.items = {}
     return
@@ -197,8 +202,14 @@ function ArchiveBrowser:loadIndex()
   for _, it in ipairs(t.items) do
     local base = it and it.base
     if base and base ~= "" then
-      local pngOk  = pcall(readImage, asset .. "SpartsArchives/" .. base .. ".png")
-      local jsonOk = readText(asset .. "SpartsArchives/" .. base .. ".json")
+      local pngOk  = pcall(readImage, "Documents:SpartsArchives_" .. base .. ".png")
+      if not pngOk then
+        pngOk = pcall(readImage, asset .. "SpartsArchives_" .. base .. ".png")
+      end
+      local jsonOk = readText("Documents:SpartsArchives_" .. base .. ".json")
+      if not jsonOk or jsonOk == "" then
+        jsonOk = readText(asset .. "SpartsArchives_" .. base .. ".json")
+      end
       
       if pngOk and jsonOk and jsonOk ~= "" then
         table.insert(cleaned, it)
@@ -215,7 +226,7 @@ function ArchiveBrowser:loadIndex()
   -- If we dropped anything, rewrite index.json so it stays clean
   if changed then
     pcall(function()
-      saveText(indexPath, json.encode({ items = cleaned }))
+      saveText("Documents:SpartsArchives_index.json", json.encode({ items = cleaned }))
     end)
   end
 end
@@ -236,8 +247,10 @@ function ArchiveBrowser:_getImageForBase(base)
   local img = self.cache[base]
   if img then return img end
   
-  local a = asset .. "SpartsArchives/" .. base .. ".png"
-  local ok, res = pcall(readImage, a)
+  local ok, res = pcall(readImage, "Documents:SpartsArchives_" .. base .. ".png")
+  if not (ok and res) then
+    ok, res = pcall(readImage, asset .. "SpartsArchives_" .. base .. ".png")
+  end
   if ok and res then
     self:_cachePut(base, res)
     return res
@@ -333,15 +346,11 @@ function ArchiveBrowser:update(dt)
     
     -- SAFE place to mutate assets
     pcall(function()
-      saveText(asset .. "SpartsArchives/" .. base .. ".json", "")
-      saveImage(asset .. "SpartsArchives/" .. base .. ".png", image(1,1))
+      saveText("Documents:SpartsArchives_" .. base .. ".json", "")
+      saveImage("Documents:SpartsArchives_" .. base .. ".png", image(1,1))
     end)
     pcall(function()
-      local indexPath = asset .. "SpartsArchives/index.json"
-      local out = {
-        items = self.items
-      }
-      saveText(indexPath, json.encode(out))
+      saveText("Documents:SpartsArchives_index.json", json.encode({ items = self.items }))
     end)
     
     return

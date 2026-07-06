@@ -56,6 +56,11 @@ function ScoreSheets:init(makeTeams)
   self._scrollHintDismissOnTouch = false
   self._scrollHintStartedAt = nil
   self._scrollHintMessage = "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
+
+  -- Dealer tracking
+  self.firstDealer  = 1
+  self.secondDealer = 3
+
   function self:_effectiveScrollY()
     return (self.scrollY or 0) + (self._kbShiftY or 0)
   end
@@ -471,7 +476,7 @@ function ScoreSheets:draw()
         
         local dirs = {"pass left", "pass right", "the Kreskin", "the hold"}
         local dir = dirs[(i - 1) % 4 + 1]
-        text("HAND "..tostring(i)..": "..dir, lx, ly)
+        text("HAND "..tostring(i)..": "..dir.." - "..self:_dealerName(i), lx, ly)
         popStyle()
       end
       self.tables[i]:draw()
@@ -770,9 +775,22 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   
   fill(255, 255, 255, self._scrollHintAlpha)
   font("Chalkduster")
-  fontSize(26)
+
+  -- Position entirely within the non-interactive score columns.
+  -- m.x[8]  = left edge of score columns (R1)
+  -- m.x[15] = right edge of score columns (GRAND)
+  local firstTable = self.tables and self.tables[1]
+  local m = firstTable and firstTable.metrics
+  local zoneLeft  = (m and m.x and m.x[8])  or (WIDTH * 0.56)
+  local zoneRight = (m and m.x and m.x[15]) or (WIDTH)
+  local zoneW     = zoneRight - zoneLeft
+
+  local msg = self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN"
+
+  fontSize(38)  -- 22 * 1.75
   textAlign(CENTER)
   textMode(CENTER)
+<<<<<<< HEAD:SpartsScoresheet.codea/Scratch.lua
   
   local cx, cy = WIDTH * 0.72, HEIGHT/2
   text(self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN", cx, cy)
@@ -782,6 +800,25 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   text("↑", cx, cy + 84)
   text("↓", cx, cy - 84)
   
+=======
+
+  -- Wrap exactly to the non-interactive cell width.
+  textWrapWidth(zoneW)
+  local tw, th = textSize(msg)
+
+  local cx = zoneLeft + zoneW * 0.5
+  local cy = HEIGHT * 0.5
+
+  text(msg, cx, cy)
+
+  -- arrows — offset by measured text height
+  fontSize(36)
+  text("↑", cx, cy + th * 0.5 + 24)
+  text("↓", cx, cy - th * 0.5 - 24)
+
+  textWrapWidth(0)  -- reset so hint wrap doesn't affect other draws
+
+>>>>>>> tmepo:SpartsScoresheet.codea/ScoreSheets.lua
   if self._scrollHintAlpha <= 0 then
     self._scrollHintActive = false
     self._scrollHintDismissOnTouch = false
@@ -1018,8 +1055,14 @@ function ScoreSheets:touched(t)
   local inScrollNow = false
 
   -- Single-finger drag on the right-side score columns should scroll the sheet.
+<<<<<<< HEAD:SpartsScoresheet.codea/Scratch.lua
   if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x)
      and not (IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id]) then
+=======
+  -- But NOT if an IncrementingCell owns this touch (user is dragging a cell value).
+  local cellOwns = IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id]
+  if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x) and not cellOwns then
+>>>>>>> tmepo:SpartsScoresheet.codea/ScoreSheets.lua
     if t.state == MOVING and self.scroll.mode ~= "idle" then
       local dy = t.y - self.scroll.startY
       if self.scroll.mode == "maybe-drag" and math.abs(dy) > 10 then
@@ -1552,4 +1595,73 @@ end
 function ScoreSheets:_archiveBaseName()
   local date = os.date("%Y-%m-%d_%H%M")
   return date .. "__" .. self:_currentNameStamp()
+end
+
+-------------------------------------------------
+-- Dealer tracking
+-------------------------------------------------
+
+local _partnerOf = {[1]=2, [2]=1, [3]=4, [4]=3}
+
+function ScoreSheets:_dealerForHand(handIndex)
+  local n = ((handIndex - 1) % 4) + 1
+  if n == 1 then return self.firstDealer end
+  if n == 2 then return self.secondDealer end
+  if n == 3 then return _partnerOf[self.firstDealer] end
+  return _partnerOf[self.secondDealer]
+end
+
+function ScoreSheets:_dealerName(handIndex)
+  local pNum = self:_dealerForHand(handIndex)
+  local teamIdx = (pNum <= 2) and 1 or 2
+  local playerIdx = (pNum % 2 == 1) and 1 or 2
+  local t = self.tables[handIndex]
+  if t and t.teams and t.teams[teamIdx] and t.teams[teamIdx].players and t.teams[teamIdx].players[playerIdx] then
+    return t.teams[teamIdx].players[playerIdx].name or ("Player " .. pNum)
+  end
+  return "Player " .. pNum
+end
+
+-------------------------------------------------
+-- Draw helpers
+-------------------------------------------------
+
+function ScoreSheets:_drawNonInteractiveOverlay(isOn, msg)
+  if not isOn then return end
+
+  pushStyle()
+  rectMode(CORNER)
+  fill(0, 0, 0, 65)
+  fill(0, 137)
+  rect(0, 0, WIDTH, HEIGHT)
+
+  fill(255, 255, 255, 230)
+  font("Chalkduster")
+  fontSize(26)
+  textAlign(CENTER)
+  textMode(CENTER)
+
+  local cx, cy = WIDTH/2, HEIGHT/2
+  if msg and msg ~= "" then
+    text(msg, cx, cy + 36)
+  end
+
+  -- tiny spinner
+  local r = 18
+  local t = ElapsedTime * 6
+  stroke(255, 255, 255, 220)
+  strokeWidth(4)
+  lineCapMode(ROUND)
+  for i = 0, 11 do
+    local a = t + i * (math.pi * 2 / 12)
+    local ax = cx + math.cos(a) * r
+    local ay = cy - 8 + math.sin(a) * r
+    local bx = cx + math.cos(a) * (r * 0.55)
+    local by = cy - 8 + math.sin(a) * (r * 0.55)
+    local alpha = 40 + (i / 11) * 180
+    stroke(255, 255, 255, alpha)
+    line(ax, ay, bx, by)
+  end
+
+  popStyle()
 end

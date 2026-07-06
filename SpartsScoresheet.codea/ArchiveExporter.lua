@@ -166,8 +166,7 @@ function ArchiveExporter:_doSnapshotNow(ss)
   end
   
   local baseName = ss:_archiveBaseName() or ("Archive_" .. os.date("%Y%m%d_%H%M%S"))
-  local folder = "SpartsArchives/"
-  saveImage(asset .. folder .. baseName .. ".png", img)
+  saveImage("Documents:SpartsArchives_" .. baseName .. ".png", img)
   
   -- Build raw inputs
   local inputs   = self:buildInputs(ss)
@@ -190,8 +189,8 @@ function ArchiveExporter:_doSnapshotNow(ss)
     computed = computed
   }
   
-  saveText(asset .. "SpartsArchives/" .. baseName .. ".json", json.encode(ledgerDump))
-  local indexAsset = asset .. "SpartsArchives/index.json"
+  saveText("Documents:SpartsArchives_" .. baseName .. ".json", json.encode(ledgerDump))
+  local indexAsset = "Documents:SpartsArchives_index.json"
   
   local idx = _readJsonOrEmpty(indexAsset)
   

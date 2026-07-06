@@ -7,7 +7,7 @@ Swift/ObjC files are Codea runtime boilerplate — do not modify them.
 ## Xcode Config
 - Scheme: SpartsScoresheet
 - Bundle ID: com.JesseWonderClark.SpartsScoresheet
-- Simulator: iPhone 16e (0EF8AE50-8899-40DD-A77E-359C06732886)
+- Simulator: iPhone 17 (1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044)
 
 ## File Structure
 - Game logic: SpartsScoresheet.codea/*.lua
@@ -22,7 +22,7 @@ Swift/ObjC files are Codea runtime boilerplate — do not modify them.
 ```bash
 # Build
 xcodebuild -scheme SpartsScoresheet \
-           -destination 'platform=iOS Simulator,id=0EF8AE50-8899-40DD-A77E-359C06732886' \
+           -destination 'platform=iOS Simulator,id=1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044' \
            -derivedDataPath /tmp/sparts-build \
            -quiet build 2>&1 > /tmp/build.log
 
@@ -30,15 +30,15 @@ xcodebuild -scheme SpartsScoresheet \
 grep -q "BUILD FAILED" /tmp/build.log && cat /tmp/build.log && exit 1
 
 # Launch
-xcrun simctl launch 0EF8AE50-8899-40DD-A77E-359C06732886 com.JesseWonderClark.SpartsScoresheet
+xcrun simctl launch 1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044 com.JesseWonderClark.SpartsScoresheet
 
 sleep 4
 
 # Screenshot
-xcrun simctl io 0EF8AE50-8899-40DD-A77E-359C06732886 screenshot /tmp/test.png
+xcrun simctl io 1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044 screenshot /tmp/test.png
 
 # Logs
-xcrun simctl spawn 0EF8AE50-8899-40DD-A77E-359C06732886 log stream \
+xcrun simctl spawn 1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044 log stream \
   --predicate 'subsystem == "com.JesseWonderClark.SpartsScoresheet"' \
   > /tmp/test.log
 ```
@@ -61,13 +61,13 @@ pkill -9 -f "Simulator" 2>/dev/null
 sleep 3
 
 # 4. Reboot the simulator
-xcrun simctl boot 0EF8AE50-8899-40DD-A77E-359C06732886
+xcrun simctl boot 1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044
 
 # 5. Verify it boots
 xcrun simctl list | grep 0EF8AE50  # should show "(Booted)"
 
 # 6. Launch app with timeout (avoid another hang)
-xcrun simctl launch 0EF8AE50-8899-40DD-A77E-359C06732886 com.JesseWonderClark.SpartsScoresheet &
+xcrun simctl launch 1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044 com.JesseWonderClark.SpartsScoresheet &
 LPID=$!; sleep 10; kill $LPID 2>/dev/null; wait $LPID 2>/dev/null
 ```
 
@@ -84,5 +84,19 @@ LPID=$!; sleep 10; kill $LPID 2>/dev/null; wait $LPID 2>/dev/null
 - Do not self-evaluate screenshots — report observation and wait for user confirmation
 - Maximum 3 correction attempts per task before escalating to user
 
+## Before committing
+- **Run, don't just build.** `xcodebuild build` succeeds for syntax errors that crash at
+  runtime (nil function calls, missing APIs). Always install + launch after building:
+  ```bash
+  xcrun simctl install <sim> <built-app> && xcrun simctl launch <sim> <bundle>
+  ```
+- **Grep for any function before using it.** Codea 3.x has a limited Lua API surface.
+  Before calling any function you haven't seen used in this codebase, grep for it:
+  ```bash
+  grep -rn 'functionName' SpartsScoresheet.codea/
+  ```
+  If it doesn't appear, it probably doesn't exist. Use `pcall` or find an alternative.
+
 ## Committing
-- in git commits do not use "Co-Authored by" instead use "Executed by"
+- **Never commit unless the user explicitly instructs you to.** Build, test, report — but wait for the user to say "commit" before touching git.
+- When committing, do not use "Co-Authored by" — use "Executed-by: Claude"

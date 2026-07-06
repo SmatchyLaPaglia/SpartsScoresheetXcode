@@ -88,6 +88,71 @@ function drawCell(x,y,w,h, label, fontSz, weight)
   popStyle()
 end
 
+-------------------------------------------------
+-- File I/O test helpers (Documents: vs asset.documents)
+-------------------------------------------------
+
+function launchNumber()
+  local n = (readLocalData("PIN_lc") or 0) + 1
+  saveLocalData("PIN_lc", n)
+  return n
+end
+
+function textsFoundByDocuments()
+  local a = readText("Documents:_pin_str.txt")
+  return a and ("'" .. a .. "'") or "nil"
+end
+
+function textsFoundByAssetDocuments()
+  local a = readText(asset.documents .. "_pin_key.txt")
+  return a and ("'" .. a .. "'") or "nil"
+end
+
+function saveTextsBothWays()
+  saveText("Documents:_pin_str.txt", "hello")
+  saveText(asset.documents .. "_pin_key.txt", "hello")
+  return "saved"
+end
+
+function testTextSaves()
+  devLog("launch " .. launchNumber())
+  devLog("texts found by 'Documents:': " .. textsFoundByDocuments())
+  devLog("texts found by asset.documents: " .. textsFoundByAssetDocuments())
+  devLog(saveTextsBothWays())
+end
+
+function resetTestState()
+  saveLocalData("PIN_lc", 0)
+  saveText("Documents:_pin_str.txt", nil)
+  saveText(asset.documents .. "_pin_key.txt", nil)
+  saveImage("Documents:_pin_str_img", nil)
+  saveImage(asset.documents .. "_pin_key_img", nil)
+  devLog("reset done — next launch will be launch 1 with all nil")
+end
+
+function imagesFoundByDocuments()
+  local a = nil; pcall(function() a = readImage("Documents:_pin_str_img") end)
+  return a and ("image " .. a.width .. "x" .. a.height) or "nil"
+end
+
+function imagesFoundByAssetDocuments()
+  local a = nil; pcall(function() a = readImage(asset.documents .. "_pin_key_img") end)
+  return a and ("image " .. a.width .. "x" .. a.height) or "nil"
+end
+
+function saveImagesBothWays()
+  local r = image(32,32); setContext(r); background(255,0,0,255); setContext()
+  saveImage("Documents:_pin_str_img", r)
+  saveImage(asset.documents .. "_pin_key_img", r)
+  return "saved"
+end
+
+function testImageSaves()
+  devLog("images found by 'Documents:': " .. imagesFoundByDocuments())
+  devLog("images found by asset.documents: " .. imagesFoundByAssetDocuments())
+  devLog(saveImagesBothWays())
+end
+
 -- Dev logger: writes to both Codea console (`print`) and Xcode console (`objc.log`).
 function devLog(...)
   local parts = {}
@@ -105,28 +170,29 @@ end
 -------------------------------------------------
 -- Globals
 -------------------------------------------------
+function reconcileTest()
+  local p = "Documents:RECONCILE_test"
+  devLog("RECON", "===")
+  devLog("RECON", "app: " .. tostring(readLocalData and "Codea" or "unknown"))
+  devLog("RECON", "saveText ok=" .. tostring(pcall(function() saveText(p .. ".txt", "hello " .. os.time()) end)))
+  devLog("RECON", "readText back=" .. tostring(pcall(function() return readText(p .. ".txt") end) and readText(p .. ".txt") or "NIL"))
+  local img = image(32,32); setContext(img); background(255,0,0,255); setContext()
+  devLog("RECON", "saveImage ok=" .. tostring(pcall(function() saveImage(p .. ".png", img) end)))
+  local ri = nil; pcall(function() ri = readImage(p .. ".png") end)
+  devLog("RECON", "readImage back=" .. tostring(ri and ("found "..ri.width.."x"..ri.height) or "NIL"))
+  if _flushLogBuffer then _flushLogBuffer() end
+end
+
 sheets = nil
 
 function setup()
   devLog("SETUP REACHED")
+
+  testTextSaves()
+  testImageSaves()
+
   viewer.mode = FULLSCREEN
-  parameter.action("Save Game", function()
-    saveGameState()
-  end)
-  parameter.action("Load Game", function()
-    loadGameState()
-  end)
-  parameter.number("Archive Scale", 0.28, 0.62, 0.42, function(v)
-    if sheets and sheets.archiveBrowser then sheets.archiveBrowser.scale = v end
-  end)
-  parameter.watch("ElapsedTime")
-  parameter.number("overallWidthPercent",  50, 100, layout.overallWidthPercent,  function(v) layout.overallWidthPercent=v  end)
-  parameter.number("overallHeightPercent", 1, 100, layout.overallHeightPercent, function(v) layout.overallHeightPercent=v end)
-  parameter.number("leftTableWidthPercent",30,  60, layout.leftTableWidthPercent,function(v) layout.leftTableWidthPercent=v end)
-  parameter.number("gapTablesPercent",      0,  10, layout.gapTablesPercent,     function(v) layout.gapTablesPercent=v     end)
-  parameter.number("headerGap",             0,  20, layout.headerGap,            function(v) layout.headerGap=v            end)
-  parameter.number("teamGap",               0,  20, layout.teamGap,              function(v) layout.teamGap=v              end)
-  
+
   -- Start with your existing 'teams' object for the first table
   sheets = ScoreSheets(function() return teams end)
 
@@ -134,11 +200,11 @@ function setup()
   devLog("ScoreSheets instance exists: ", sheets ~= nil)
 
   --game persistence:
-  
+
   loadGameState()
-  
+
   lifecycle = LifecycleObserver()
-  
+
   function persist(reason)
     devLog("[LIFECYCLE]", reason, "-> saving game state")
     local t = os.time()
@@ -146,31 +212,31 @@ function setup()
     saveLocalData("lastSaveReason", reason or "")
     saveGameState()
   end
-  
+
   lifecycle.onWillResignActive = function()
     persist("will resign active")
   end
-  
+
   lifecycle.onDidEnterBackground = function()
     persist("did enter background")
   end
-  
+
   lifecycle.onWillTerminate = function()
     persist("will terminate")
   end
-  
+
   local lastEpoch  = readLocalData("lastSaveEpoch")
   local lastReason = readLocalData("lastSaveReason")
-  
+
   if lastEpoch then
     local pretty = os.date("%b %d, %Y, %I:%M %p", lastEpoch)
     devLog("[SAVE CHECK] last save:", pretty, "reason:", lastReason)
   else
     devLog("[SAVE CHECK] no prior save recorded")
   end
-  
+
   videoPlayer = CodeaAVPlayer()
-  movieActive = false  -- gate for SPARTS logo tap → intro video
+  movieActive = false
 
 end
 
@@ -178,7 +244,22 @@ function draw()
   background(250, 150, 50)
   fill(255)
   text("HELLO FROM SPARTS", WIDTH/2, HEIGHT/2)
-    if sheets then sheets:draw() end
+  if sheets then sheets:draw() end
+
+  -- Show test results on screen
+  if _testLines then
+    pushStyle()
+    fill(0, 255, 0)
+    fontSize(13)
+    textAlign(LEFT)
+    textMode(CORNER)
+    local y = HEIGHT - 20
+    for i = #_testLines, 1, -1 do
+      text(_testLines[i], 10, y)
+      y = y - 16
+    end
+    popStyle()
+  end
 end
 
 function touched(t)
