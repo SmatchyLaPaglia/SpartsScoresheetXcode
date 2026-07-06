@@ -1,0 +1,17 @@
+# Build products
+build/
+DerivedData/
+
+# Xcode user state
+*.xcuserstate
+*.xcuserdata/
+UserInterfaceState.xcuserstate
+xcuserdata/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# CocoaPods generated files (OK to ignore these)
+Pods/
+*.xcworkspace
