@@ -16,6 +16,7 @@
 		DB83FB3A223DBDA3005750D2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DB83FB38223DBDA3005750D2 /* LaunchScreen.storyboard */; };
 		DB83FB54223DBF71005750D2 /* ProjectAddon.mm in Sources */ = {isa = PBXBuildFile; fileRef = DB83FB53223DBF71005750D2 /* ProjectAddon.mm */; };
 		DB83FB7B223DC2E5005750D2 /* ProjectModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = DB83FB7A223DC2E5005750D2 /* ProjectModule.mm */; };
+		E47652B93000A20B0068B3F8 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = E47652B83000A20B0068B3F8 /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -62,6 +63,7 @@
 		DB83FB79223DC2E5005750D2 /* ProjectModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ProjectModule.h; sourceTree = "<group>"; };
 		DB83FB7A223DC2E5005750D2 /* ProjectModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ProjectModule.mm; sourceTree = "<group>"; };
 		DBE4204D260B8B0D002BF271 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		E47652B83000A20B0068B3F8 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +81,7 @@
 		DB83FB23223DBDA2005750D2 = {
 			isa = PBXGroup;
 			children = (
+				E47652B83000A20B0068B3F8 /* AppIcon.icon */,
 				DB0F615822709F060024AE28 /* SpartsScoresheet.codea */,
 				DB0F615A2270A0FB0024AE28 /* Assets */,
 				DB83FB2E223DBDA2005750D2 /* SpartsScoresheet */,
@@ -227,6 +230,7 @@
 				DB0F615B2270A0FB0024AE28 /* Assets in Resources */,
 				DB83FB37223DBDA3005750D2 /* Assets.xcassets in Resources */,
 				DB0F615922709F060024AE28 /* SpartsScoresheet.codea in Resources */,
+				E47652B93000A20B0068B3F8 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -379,9 +383,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T95NG6LKAU;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 9JKF54FFAZ;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/SpartsScoresheet/Frameworks",
@@ -397,6 +402,7 @@
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.JesseWonderClark.SpartsScoresheet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -414,9 +420,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T95NG6LKAU;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 9JKF54FFAZ;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/SpartsScoresheet/Frameworks",
@@ -432,6 +439,7 @@
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.JesseWonderClark.SpartsScoresheet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
