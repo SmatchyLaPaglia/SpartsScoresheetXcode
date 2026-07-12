@@ -2,59 +2,74 @@
 
 ## Current State
 
-**Commit:** `102cb4f` (detached HEAD) — "fix: horizontal drag tolerance, tap vs drag animation, stepPx, hint position, movieActive gate"
+**Commit:** `b5fcfb8` on `main`. Working tree clean.
 
-App builds and runs from Xcode on iPhone 17 simulator (`1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044`).
+App builds, launches, and renders the scoresheet correctly on iPhone 17 simulator
+(`1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044`), confirmed after a fresh simulator boot.
 
-## Session Failures — Archive Fix
+**The app is landscape-only by design.** The scoresheet renders sideways relative to
+the simulator's portrait status bar — this is expected, not a bug. Don't rabbit-hole
+on "rotation" as a symptom.
 
-### Task
-Archives (generated when user taps "New Game" → Confirm) must save to persistent storage and appear in the Archives browser. On simulator, archives generated in one session vanish after Xcode rebuild. On device, they never appeared at all.
+## Resolved: launch failure (scoresheet never appeared)
 
-### What was attempted
+This session fixed the app failing to launch — it would show only a placeholder
+screen (previously "HELLO FROM SPARTS", now a "LAUNCH FAILURE" screen if it recurs)
+and never construct the scoresheet.
 
-| Attempt | Approach | Result |
-|---------|----------|--------|
-| 1 | Revert to `asset.documents` prefix | User rejected — `asset.documents` is for bundled dependencies, not file I/O |
-| 2 | `asset .. "SpartsArchives/"` → `asset.SpartsArchives .. "/"` (dot notation) | Built and ran, but archives empty in browser |
-| 3 | Invented new helper functions (`_archReadIndex`, `_archHideBundled`, etc.) creating a parallel merged-index system | Built and ran, archives empty in browser. User said "you invented a new way instead of fixing existing patterns" |
-| 4 | Reverted all changes, made minimal edit: `asset .. "SpartsArchives/"` → `"Documents:SpartsArchives/"` on writes, added `_readArchiveText`/`_readArchiveImage` helpers for dual-source reads | Built and ran, archives empty in browser |
+**Root cause:** two independent bugs, both introduced around the `tmepo` merge:
 
-### Net result
-**Zero progress.** Archives still don't appear in the browser after "New Game" → Confirm. Working tree has uncommitted changes to `AchiveExporter.lua` and `ArchiveBrowser.lua` that don't solve the problem.
+1. `Package.resolved` (pins the `twolivesleft/Runtime` SPM package, which provides
+   Codea's `LuaKit`/`RuntimeKit` runtime) got accidentally gitignored in `27bfa6a`.
+   The package requirement is `branch = main` with no fixed tag, so every fresh
+   build silently re-resolved to whatever was newest on that branch. The drifted
+   commit's threaded driver crashes touching UIKit off the main thread
+   (`viewer.mode`, `UITextField` construction both throw
+   `attempt to index a nil value (field 'parentViewController')`), which aborted
+   `ScoreSheets:init` every time.
+2. `ScoreSheets.lua` had two unresolved git merge-conflict markers left over from
+   the `tmepo` merge, making the file invalid Lua — Codea couldn't compile it, so
+   `ScoreSheets` was never even defined.
 
-### Fundamental unanswered question
-**Are the images failing to be generated (saveImage/saveText silently failing), or are they being saved correctly but failing to be loaded/displayed (readImage/readText returning nil)?**
+**Fix:** repinned `Package.resolved` to the last known-good revision (`924c512`,
+confirmed working at commit `91229e4`), stopped gitignoring it, and resolved the
+merge conflicts. See commit `b5fcfb8` for full details and the diagnostic trail.
 
-Determining this requires a diagnostic that isolates save from load. For example:
-- After archiving, check whether files exist in the sandbox `Documents/` folder using `xcrun simctl` to inspect the app's data container
-- Or add a Codea-side debug path that tries to read back the image immediately after saving it and reports success/failure via `print()` or a visible on-screen indicator
+**Gotcha for future sessions:** see the new "SPM Dependency Pinning" section in
+CLAUDE.md. If the scoresheet ever fails to appear again and the Xcode console shows
+`Modifying properties of a view's layer off the main thread` /
+`parentViewController`, check `Package.resolved`'s pinned revision before assuming
+it's a Lua bug.
 
-### Known working pattern (Quozzy project)
-Another Codea Xcode export project uses `"Documents:"` as a string prefix for `saveImage`/`readImage`:
-```lua
-saveImage("Documents:LoadingImage", img)
-readImage("Documents:LastMatchReplayAvatar")
-```
-This was confirmed working in Quozzy. The same approach was applied in attempt 4 but still failed — suggesting the problem may be in the archiving flow itself (e.g., `_doSnapshotNow` or `ArchiveExporter:update` not actually being called, or the rendered image being nil/empty) rather than in the file path.
+## Archive investigation — needs re-verification
 
-## Notes on Claude's behavior
-- Repeatedly invented new architectures instead of making minimal fixes to existing patterns
-- Failed to run a diagnostic to determine whether the failure is on the save or load side before attempting fixes
-- Built and tested each attempt against an empty state (no archive had been saved during that session) so the "archives empty" result was the same regardless of whether the fix was correct or not
-- Did not test the full flow: New Game → Confirm → Archives browser
+A prior session spent 4 attempts trying to fix archives (generated via "New Game" →
+Confirm) not appearing in the Archives browser, with zero resolved progress. That
+investigation predates this session's launch fix — depending on exactly when the
+`Package.resolved`/merge-conflict breakage started, some or all of that testing may
+have been run against a build that wasn't actually launching correctly, which would
+invalidate the "archives empty" observations.
+
+**Next step:** re-test the full flow (New Game → Confirm → Archives browser) fresh,
+now that the app reliably launches, before resuming any archive-specific debugging.
+Don't trust old findings from before this fix.
 
 ## Git State
-- **Working tree**: `AchiveExporter.lua` and `ArchiveBrowser.lua` dirty (attempt 4 changes — `"Documents:SpartsArchives/"` paths)
-- **stash@{0}**: Scroll sensor fix in Scratch.lua + handoff edits (from session before last)
-- **stash@{1}**: Orchestrator pattern and hand-passing labels (older)
+
+- Working tree: clean.
+- **stash@{0}**: "dumb interface nothign" (main)
+- **stash@{1}**: "dumb interface nothing" (tmepo branch)
+- **stash@{2}**: uncommitted Scratch.lua and HANDOFF.md changes (main)
+- **stash@{3}**: orchestrator pattern and hand-passing labels (main)
+- None of these were touched this session — unverified, may be stale.
 
 ## Task Queue
-1. [ ] **CRITICAL: Fix archive generation and display**
+
+1. [ ] Re-verify archive generation/display now that the app launches (see above)
 2. [ ] Fix SPARTS logo tap to play intro video
 3. [ ] Add pass direction to hand number labels
 
 ## Simulators
+
 - iPhone 17: `1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044` (USE THIS ONE)
 - iPhone 16e: `0EF8AE50-8899-40DD-A77E-359C06732886` (other project, do not use)
- 

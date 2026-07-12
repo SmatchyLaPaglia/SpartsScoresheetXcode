@@ -76,6 +76,49 @@ LPID=$!; sleep 10; kill $LPID 2>/dev/null; wait $LPID 2>/dev/null
 - Always terminate the app before launching a new instance: `xcrun simctl terminate ...` first.
 - If `simctl terminate` hangs for more than 5 seconds, the simulator is already wedged — use the full kill procedure above.
 
+## App Orientation
+The app is **landscape-only by design**. The scoresheet renders sideways relative
+to the simulator's portrait status bar/chrome — this is expected, not a bug. Don't
+spend time "fixing" rotation.
+
+## SPM Dependency Pinning — Diagnosis & Fix
+
+**Symptom:** App builds and launches, but the scoresheet (or any UIKit-touching
+Lua code called from `setup()`) never appears — screen stays on a placeholder.
+Xcode console shows:
+```
+Modifying properties of a view's layer off the main thread is not allowed: ...
+attempt to index a nil value (field 'parentViewController')
+```
+Easy to misdiagnose as a Lua bug (nil check, wrong API) because the stack trace
+points into your Lua file.
+
+**Root cause:** the `twolivesleft/Runtime` SPM package (provides Codea's
+`LuaKit`/`RuntimeKit`) is pinned to `branch = main` with no fixed tag/version. If
+`SpartsScoresheet.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`
+is missing or its `Runtime` pin has drifted, a fresh build silently resolves to
+whatever is newest on that branch — which can introduce a regression in the
+threaded runtime driver's UIKit handling. This happened once already (see git
+history around commit `27bfa6a`, which accidentally gitignored `Package.resolved`
+alongside genuine IDE-state cleanup).
+
+**Fix — check this before debugging Lua:**
+```bash
+# Check the currently pinned Runtime revision
+cat SpartsScoresheet.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# Force a clean resolve against whatever is currently pinned there
+xcodebuild -resolvePackageDependencies -scheme SpartsScoresheet -derivedDataPath /tmp/sparts-build
+```
+Last known-good pinned revision: `924c512405ebc7c5c4694c66367d709d73aa287d`
+(confirmed working at commit `91229e4`).
+
+**How to avoid causing it:**
+- Never let `Package.resolved` be gitignored — it must stay tracked. `.gitignore`
+  should not have a bare `Package.resolved` or blanket `*.xcworkspace` rule.
+- Don't run Xcode's "Update to Latest Package Versions" on this project unless
+  you intend to re-pin and re-verify the launch.
+
 ## Rules
 - Edit only Lua files in SpartsScoresheet.codea/
 - Never modify Swift/ObjC runtime files unless explicitly told to
