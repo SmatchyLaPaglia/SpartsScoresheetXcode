@@ -88,71 +88,6 @@ function drawCell(x,y,w,h, label, fontSz, weight)
   popStyle()
 end
 
--------------------------------------------------
--- File I/O test helpers (Documents: vs asset.documents)
--------------------------------------------------
-
-function launchNumber()
-  local n = (readLocalData("PIN_lc") or 0) + 1
-  saveLocalData("PIN_lc", n)
-  return n
-end
-
-function textsFoundByDocuments()
-  local a = readText("Documents:_pin_str.txt")
-  return a and ("'" .. a .. "'") or "nil"
-end
-
-function textsFoundByAssetDocuments()
-  local a = readText(asset.documents .. "_pin_key.txt")
-  return a and ("'" .. a .. "'") or "nil"
-end
-
-function saveTextsBothWays()
-  saveText("Documents:_pin_str.txt", "hello")
-  saveText(asset.documents .. "_pin_key.txt", "hello")
-  return "saved"
-end
-
-function testTextSaves()
-  devLog("launch " .. launchNumber())
-  devLog("texts found by 'Documents:': " .. textsFoundByDocuments())
-  devLog("texts found by asset.documents: " .. textsFoundByAssetDocuments())
-  devLog(saveTextsBothWays())
-end
-
-function resetTestState()
-  saveLocalData("PIN_lc", 0)
-  saveText("Documents:_pin_str.txt", nil)
-  saveText(asset.documents .. "_pin_key.txt", nil)
-  saveImage("Documents:_pin_str_img", nil)
-  saveImage(asset.documents .. "_pin_key_img", nil)
-  devLog("reset done — next launch will be launch 1 with all nil")
-end
-
-function imagesFoundByDocuments()
-  local a = nil; pcall(function() a = readImage("Documents:_pin_str_img") end)
-  return a and ("image " .. a.width .. "x" .. a.height) or "nil"
-end
-
-function imagesFoundByAssetDocuments()
-  local a = nil; pcall(function() a = readImage(asset.documents .. "_pin_key_img") end)
-  return a and ("image " .. a.width .. "x" .. a.height) or "nil"
-end
-
-function saveImagesBothWays()
-  local r = image(32,32); setContext(r); background(255,0,0,255); setContext()
-  saveImage("Documents:_pin_str_img", r)
-  saveImage(asset.documents .. "_pin_key_img", r)
-  return "saved"
-end
-
-function testImageSaves()
-  devLog("images found by 'Documents:': " .. imagesFoundByDocuments())
-  devLog("images found by asset.documents: " .. imagesFoundByAssetDocuments())
-  devLog(saveImagesBothWays())
-end
-
 -- Dev logger: writes to both Codea console (`print`) and Xcode console (`objc.log`).
 function devLog(...)
   local parts = {}
@@ -170,26 +105,10 @@ end
 -------------------------------------------------
 -- Globals
 -------------------------------------------------
-function reconcileTest()
-  local p = "Documents:RECONCILE_test"
-  devLog("RECON", "===")
-  devLog("RECON", "app: " .. tostring(readLocalData and "Codea" or "unknown"))
-  devLog("RECON", "saveText ok=" .. tostring(pcall(function() saveText(p .. ".txt", "hello " .. os.time()) end)))
-  devLog("RECON", "readText back=" .. tostring(pcall(function() return readText(p .. ".txt") end) and readText(p .. ".txt") or "NIL"))
-  local img = image(32,32); setContext(img); background(255,0,0,255); setContext()
-  devLog("RECON", "saveImage ok=" .. tostring(pcall(function() saveImage(p .. ".png", img) end)))
-  local ri = nil; pcall(function() ri = readImage(p .. ".png") end)
-  devLog("RECON", "readImage back=" .. tostring(ri and ("found "..ri.width.."x"..ri.height) or "NIL"))
-  if _flushLogBuffer then _flushLogBuffer() end
-end
-
 sheets = nil
 
 function setup()
   devLog("SETUP REACHED")
-
-  testTextSaves()
-  testImageSaves()
 
   viewer.mode = FULLSCREEN
 
@@ -241,25 +160,24 @@ function setup()
 end
 
 function draw()
-  background(250, 150, 50)
-  fill(255)
-  text("HELLO FROM SPARTS", WIDTH/2, HEIGHT/2)
-  if sheets then sheets:draw() end
-
-  -- Show test results on screen
-  if _testLines then
-    pushStyle()
-    fill(0, 255, 0)
-    fontSize(13)
-    textAlign(LEFT)
-    textMode(CORNER)
-    local y = HEIGHT - 20
-    for i = #_testLines, 1, -1 do
-      text(_testLines[i], 10, y)
-      y = y - 16
-    end
-    popStyle()
+  background(35)
+  if sheets then
+    sheets:draw()
+    return
   end
+
+  -- Failure state: the scoresheet could not be constructed during setup().
+  -- (See the Xcode console for the underlying error.)
+  pushStyle()
+  textAlign(CENTER)
+  textMode(CENTER)
+  fill(235, 90, 60)
+  fontSize(52)
+  text("LAUNCH FAILURE", WIDTH/2, HEIGHT/2 + 34)
+  fill(200)
+  fontSize(22)
+  text("Scoresheet failed to initialize", WIDTH/2, HEIGHT/2 - 34)
+  popStyle()
 end
 
 function touched(t)

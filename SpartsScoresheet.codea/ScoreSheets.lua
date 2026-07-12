@@ -790,17 +790,6 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
   fontSize(38)  -- 22 * 1.75
   textAlign(CENTER)
   textMode(CENTER)
-<<<<<<< HEAD:SpartsScoresheet.codea/Scratch.lua
-  
-  local cx, cy = WIDTH * 0.72, HEIGHT/2
-  text(self._scrollHintMessage or "SWIPE ON THE RIGHT SIDE\nTO SCROLL SCREEN", cx, cy)
-
-  -- arrows (text)
-  fontSize(44)
-  text("↑", cx, cy + 84)
-  text("↓", cx, cy - 84)
-  
-=======
 
   -- Wrap exactly to the non-interactive cell width.
   textWrapWidth(zoneW)
@@ -818,7 +807,6 @@ if self._scrollHintActive and (self._scrollHintAlpha or 0) > 0 then
 
   textWrapWidth(0)  -- reset so hint wrap doesn't affect other draws
 
->>>>>>> tmepo:SpartsScoresheet.codea/ScoreSheets.lua
   if self._scrollHintAlpha <= 0 then
     self._scrollHintActive = false
     self._scrollHintDismissOnTouch = false
@@ -1055,14 +1043,9 @@ function ScoreSheets:touched(t)
   local inScrollNow = false
 
   -- Single-finger drag on the right-side score columns should scroll the sheet.
-<<<<<<< HEAD:SpartsScoresheet.codea/Scratch.lua
-  if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x)
-     and not (IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id]) then
-=======
   -- But NOT if an IncrementingCell owns this touch (user is dragging a cell value).
   local cellOwns = IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id]
   if self._touchCount == 1 and t.state ~= BEGAN and isRightSideTouch(t.x) and not cellOwns then
->>>>>>> tmepo:SpartsScoresheet.codea/ScoreSheets.lua
     if t.state == MOVING and self.scroll.mode ~= "idle" then
       local dy = t.y - self.scroll.startY
       if self.scroll.mode == "maybe-drag" and math.abs(dy) > 10 then
@@ -1498,86 +1481,6 @@ alert:addAction_(cancel)
 local vc = objc.viewer
 vc:presentViewController_animated_completion_(alert, true, nil)
 end
-
-function ScoreSheets:_saveArchiveSnapshot()
-  if not self._inDraw then self._pendingArchiveSnapshot = true; return end
-  print("saving")
-  local stepH, gapH = self:_stackMetrics()
-  local d = stepH + gapH
-  local n = #self.tables
-  
-  -- total height for all hands + a little header space
-  local topPad = 120
-  local botPad = 80
-  local totalH = math.floor(topPad + (stepH * n) + (gapH * math.max(0, n - 1)) + botPad + 0.5)
-  local rt = image(WIDTH, totalH)
-  setContext(rt)
-  background(35)
-  fill(255)
-  fontSize(40)
-  print("SNAP "..tostring(WIDTH).."x"..tostring(totalH), WIDTH/2, totalH/2)
-  setContext()
-  --            saveImage(asset.SpartsArchives .. "test.png", rt)
-  if true then return end
-  
-  local stepH, gapH = self:_stackMetrics()
-  local d = stepH + gapH
-  local n = #self.tables
-  
-  -- total height for all hands + a little header space
-  local topPad = 120
-  local botPad = 80
-  local totalH = math.floor(topPad + (stepH * n) + (gapH * math.max(0, n - 1)) + botPad + 0.5)
-  
-  
-  local rt = image(WIDTH, totalH)
-  local baseName = self:_archiveBaseName()
-  
-  -- freeze scrolling while snapshotting
-  local oldScrollY = self.scrollY
-  local oldKbShift = self._kbShiftY
-  self.scrollY = 0
-  self._kbShiftY = 0
-  
-  setContext(rt)
-  pushStyle()
-  background(35)
-  
-  -- shift so the first hand sits near the top of the tall image
-  local desiredCenterY = totalH - topPad - (stepH * 0.5)
-  local baseShift = desiredCenterY - (HEIGHT * 0.5)  -- NOTE: HEIGHT is rt height inside setContext
-  
-  for i = 1, n do
-    pushMatrix()
-    translate(0, baseShift - (i - 1) * d)
-    self.tables[i]:draw()
-    popMatrix()
-  end
-  
-  popStyle()
-  setContext()
-  
-  -- restore
-  self.scrollY = oldScrollY
-  self._kbShiftY = oldKbShift
-  if false then 
-    -- save image
-    saveImage(asset.SpartsArchives  .. baseName .. ".png", rt)
-  end
-  
-  -- save metadata (JSON)
-  local meta = {
-    created = os.date("%Y-%m-%d %H:%M:%S"),
-    nameStamp = self:_currentNameStamp(),
-    hands = n
-  }
-  
-  saveText(
-  asset.SpartsArchives .. baseName .. ".json",
-  json.encode(meta)
-)
-end
-
 
 function ScoreSheets:_currentNameStamp()
   local t = self.tables and self.tables[1]

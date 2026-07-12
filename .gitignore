@@ -10,8 +10,10 @@ xcuserdata/
 
 # Swift Package Manager
 .swiftpm/
-Package.resolved
+# NOTE: Package.resolved is intentionally tracked (see swiftpm/Package.resolved
+# below) to pin the twolivesleft/Runtime dependency to a known-good revision.
+# It was previously gitignored here, which let Xcode silently re-resolve to a
+# newer commit on Runtime's `main` branch and broke the app at launch.
 
 # CocoaPods generated files (OK to ignore these)
 Pods/
-*.xcworkspace

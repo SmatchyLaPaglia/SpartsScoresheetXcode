@@ -10,18 +10,15 @@
 		<string>Sensor</string>
 		<string>UIKit</string>
 		<string>SaveAndLoad</string>
-		<string>AchiveExporter</string>
+		<string>ArchiveExporter</string>
 		<string>CheckboxCell</string>
 		<string>ArchiveBrowser</string>
-		<string>Scratch</string>
 		<string>Tests</string>
 		<string>notchTracker</string>
 		<string>ScoreLedger</string>
 		<string>Theme</string>
 		<string>ScoreTable</string>
-		<string>ScoreSheetsCore</string>
-		<string>ScoreSheetsFuncs</string>
-		<string>OverlayDrawer</string>
+		<string>ScoreSheets</string>
 		<string>Class</string>
 		<string>ScoreRules</string>
 	</array>
