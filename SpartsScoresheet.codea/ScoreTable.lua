@@ -511,27 +511,38 @@ function ScoreTable:draw()
   --------------------------------------------------------------------------
   local function nameStripe(i) return (i%2==1) and Theme.nameStripeLight or Theme.nameStripeDark end
   local dealerIdx = self._dealerGlobalIndex
-  local function nameBg(i, globalIdx)
-    if dealerIdx and globalIdx == dealerIdx then return Theme.nameDealerBg end
-    return nameStripe(i)
-  end
   local nameFS  = m.leftRowH * 0.42
   local chipFS  = m.leftRowH * 0.32
 
   local PLACEHOLDER_COL  = color(175)
   local BLACK = color(0, 0, 0, 255)
 
-  self:_cell(x[1], m.t1_row1, w(1,2), m.leftRowH, nameBg(1, 1), self.teams[1].players[1].name,
+  self:_cell(x[1], m.t1_row1, w(1,2), m.leftRowH, nameStripe(1), self.teams[1].players[1].name,
   (self.teams[1].players[1].name == "Player 1") and PLACEHOLDER_COL or BLACK, nameFS)
 
-  self:_cell(x[1], m.t1_row2, w(1,2), m.leftRowH, nameBg(2, 2), self.teams[1].players[2].name,
+  self:_cell(x[1], m.t1_row2, w(1,2), m.leftRowH, nameStripe(2), self.teams[1].players[2].name,
   (self.teams[1].players[2].name == "Player 2") and PLACEHOLDER_COL or BLACK, nameFS)
 
-  self:_cell(x[1], m.t2_row1, w(1,2), m.leftRowH, nameBg(1, 3), self.teams[2].players[1].name,
+  self:_cell(x[1], m.t2_row1, w(1,2), m.leftRowH, nameStripe(1), self.teams[2].players[1].name,
   (self.teams[2].players[1].name == "Player 3") and PLACEHOLDER_COL or BLACK, nameFS)
 
-  self:_cell(x[1], m.t2_row2, w(1,2), m.leftRowH, nameBg(2, 4), self.teams[2].players[2].name,
+  self:_cell(x[1], m.t2_row2, w(1,2), m.leftRowH, nameStripe(2), self.teams[2].players[2].name,
   (self.teams[2].players[2].name == "Player 4") and PLACEHOLDER_COL or BLACK, nameFS)
+
+  -- Blue outline (no fill) inset inside the dealer name box for this hand
+  if dealerIdx then
+    local dealerY = ({ m.t1_row1, m.t1_row2, m.t2_row1, m.t2_row2 })[dealerIdx]
+    if dealerY then
+      pushStyle()
+      noFill()
+      stroke(Theme.nameDealerBox)
+      strokeWidth(2)
+      rectMode(CORNER)
+      local inset = 3
+      rect(x[1] + inset, dealerY + inset, w(1,2) - 2*inset, m.leftRowH - 2*inset)
+      popStyle()
+    end
+  end
   
   -- chips row (same content, now positioned by spans)
   local function chipsRow(y)
