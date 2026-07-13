@@ -478,7 +478,7 @@ function ScoreSheets:draw()
         local dirs = {"pass left", "pass right", "the Kreskin", "the hold"}
         local dir = dirs[(i - 1) % 4 + 1]
         local dealer = self:_dealerName(i)
-        local prefix = tostring(i)..": "..dir.." - deal: "
+        local prefix = tostring(i)..": "..dir.." - dealer: "
         if i == 1 or i == 2 then
           text(prefix, lx, ly)
           local pw = textSize(prefix)
@@ -493,6 +493,7 @@ function ScoreSheets:draw()
         end
         popStyle()
       end
+      self.tables[i]._dealerGlobalIndex = self:_dealerForHand(i)
       self.tables[i]:draw()
       self.tables[i]._scrollY = -((i - 1) * d) + sy
       popMatrix()
