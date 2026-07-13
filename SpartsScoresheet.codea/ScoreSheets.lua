@@ -456,7 +456,8 @@ function ScoreSheets:draw()
     for i = 1, #self.tables do
       pushMatrix()
       -- first hand at scrollY==0 is centered; later hands are drawn LOWER (negative offset)
-      translate(0, - (i-1) * d + sy - 10)
+      local rowOffY = - (i-1) * d + sy - 10
+      translate(0, rowOffY)
       
       -- Hand labels 
       local m = self.tables[i].metrics
@@ -476,7 +477,19 @@ function ScoreSheets:draw()
         
         local dirs = {"pass left", "pass right", "the Kreskin", "the hold"}
         local dir = dirs[(i - 1) % 4 + 1]
-        text("HAND "..tostring(i)..": "..dir.." - "..self:_dealerName(i), lx, ly)
+        local dealer = self:_dealerName(i)
+        local prefix = tostring(i)..": "..dir.." - deal: "
+        if i == 1 then
+          text(prefix, lx, ly)
+          local pw = textSize(prefix)
+          fill(60, 130, 240)   -- tappable blue for the first dealer name
+          text(dealer, lx + pw, ly)
+          local nw, nh = textSize(dealer)
+          -- screen-space hit rect (add this row translate offset)
+          self._dealerHit = { x = lx + pw, y = ly + rowOffY, w = nw, h = nh }
+        else
+          text(prefix..dealer, lx, ly)
+        end
         popStyle()
       end
       self.tables[i]:draw()
@@ -963,6 +976,15 @@ function ScoreSheets:touched(t)
   ------------------------------------------------------------
   -- 1) Track touches FIRST (never miss cleanup)
   ------------------------------------------------------------
+  if t.state == BEGAN and self._dealerHit then
+    local h = self._dealerHit
+    if t.x >= h.x and t.x <= h.x + h.w and t.y >= h.y and t.y <= h.y + h.h then
+      self:_cycleFirstDealer()
+      if saveGameState then saveGameState() end
+      return true
+    end
+  end
+
   if t.state == BEGAN and self._spartsHit then
     local dx = t.x - self._spartsHit.x
     local dy = t.y - self._spartsHit.y
@@ -1524,6 +1546,16 @@ function ScoreSheets:_dealerName(handIndex)
     return t.teams[teamIdx].players[playerIdx].name or ("Player " .. pNum)
   end
   return "Player " .. pNum
+end
+
+function ScoreSheets:_setFirstDealer(p)
+  self.firstDealer = p
+  -- "for now": second dealer is the first player of the opposite team
+  self.secondDealer = (p <= 2) and 3 or 1
+end
+
+function ScoreSheets:_cycleFirstDealer()
+  self:_setFirstDealer((self.firstDealer % 4) + 1)
 end
 
 -------------------------------------------------

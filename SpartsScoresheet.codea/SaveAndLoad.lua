@@ -6,6 +6,9 @@ function saveGameState()
   
   -- number of hands
   saveLocalData("handCount", #sheets.tables)
+
+  -- first dealer (drives dealer rotation across hands)
+  saveLocalData("firstDealer", sheets.firstDealer or 1)
   
   for hi, table in ipairs(sheets.tables) do
     for ti = 1, 2 do
@@ -83,7 +86,31 @@ function loadGameState()
   
   sheets = ScoreSheets(function() return tables[1].teams end)
   sheets.tables = tables
-  
+
+  if sheets._setFirstDealer then
+    sheets:_setFirstDealer(readLocalData("firstDealer", 1))
+  end
+
+  -- Restore hand-1 player names from disk. init() seeds the name text fields
+  -- with "Player N" placeholders and writes them into the model, which would
+  -- otherwise clobber the just-loaded names on the first hand only.
+  if sheets._nameData and sheets._rawNameFields and sheets.tables[1] then
+    for i = 1, 4 do
+      local nameData = sheets._nameData[i]
+      if nameData then
+        local ti = nameData.team
+        local pi = nameData.player
+        local savedName = readLocalData("h1t"..ti.."p"..pi.."name", "")
+        if savedName and savedName ~= "" then
+          local model = sheets.tables[1].teams[ti].players[pi]
+          if model then model.name = savedName end
+          local tf = sheets._rawNameFields[i]
+          if tf then tf.text = savedName end
+        end
+      end
+    end
+  end
+
   devLog("[LOAD] done")
 end
     
