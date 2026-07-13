@@ -456,7 +456,7 @@ function ScoreSheets:draw()
     for i = 1, #self.tables do
       pushMatrix()
       -- first hand at scrollY==0 is centered; later hands are drawn LOWER (negative offset)
-      translate(0, - (i-1) * d + sy)
+      translate(0, - (i-1) * d + sy - 10)
       
       -- Hand labels 
       local m = self.tables[i].metrics
@@ -494,7 +494,8 @@ function ScoreSheets:draw()
       
       pushStyle()
       font("Chalkduster") -- fallback if unavailable: "ChalkboardSE-Bold"
-      fontSize(60)
+      local logoSize = 46
+      fontSize(logoSize)
       fill(255, 255, 255, 220)
       textAlign(CENTER)
       textMode(CENTER)
@@ -505,14 +506,14 @@ function ScoreSheets:draw()
       self._spartsHit = {
         x = WIDTH/2,
         y = spY,
-        r = 90    -- tune if needed, but start here
+        r = logoSize * 1.5    -- scales with logoSize
       }
       
       fontSize(18)
       fill(120)
       textAlign(CENTER)
       textMode(CENTER)
-      text(os.date("%B %d, %Y"), WIDTH/2, spY - 44)
+      text(os.date("%B %d, %Y"), WIDTH/2, spY - 32)
       
       popStyle()
     end
