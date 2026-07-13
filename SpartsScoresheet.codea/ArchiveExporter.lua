@@ -92,7 +92,7 @@ function ArchiveExporter:_doSnapshotNow(ss)
       
       local dirs = {"pass left", "pass right", "the Kreskin", "the hold"}
       local dir = dirs[(i - 1) % 4 + 1]
-      text("HAND " .. i .. ": " .. dir, lx, ly)
+      text(tostring(i) .. ": " .. dir .. " - dealer: " .. ss:_dealerName(i), lx, ly)
       popStyle()
     end
     ss.tables[i]:draw()
