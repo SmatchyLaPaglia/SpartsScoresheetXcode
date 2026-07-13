@@ -81,10 +81,12 @@ function ArchiveBrowser:_summaryForBase(base)
   local dump = self:_getMetaForBase(base)
   if not dump then
     return {
-      date  = "—",
-      t1    = "—/—",
-      t2    = "—/—",
-      scores= "Final Scores: — to —"
+      date = "—",
+      t1   = "—/—",
+      t2   = "—/—",
+      s1   = "—",
+      s2   = "—",
+      win  = 0
     }
   end
   
@@ -109,11 +111,19 @@ function ArchiveBrowser:_summaryForBase(base)
     s2 = tostring(last.teams[2].gameTotal or "—")
   end
   
+  local n1, n2 = tonumber(s1), tonumber(s2)
+  local win = 0
+  if n1 and n2 then
+    if n1 > n2 then win = 1 elseif n2 > n1 then win = 2 end
+  end
+
   return {
-    date  = created,
-    t1    = t1p1 .. "/" .. t1p2,
-    t2    = t2p1 .. "/" .. t2p2,
-    scores= "Final Scores: " .. s1 .. " to " .. s2
+    date = created,
+    t1   = t1p1 .. "/" .. t1p2,
+    t2   = t2p1 .. "/" .. t2p2,
+    s1   = s1,
+    s2   = s2,
+    win  = win
   }
 end
 
@@ -514,16 +524,19 @@ function ArchiveBrowser:draw()
         textMode(CORNER)
         textAlign(LEFT)
         
-        local label = "Teams: "
-        local labelW = textSize(label)
-        
         -- measure widths (box can be narrower than image)
-        local w1 = textSize(sum.date or "")
-        local w3 = labelW + textSize(sum.t1 or "")
-        local w4 = labelW + textSize(sum.t2 or "")
-        local w6 = textSize(sum.scores or "")
-        
-        local maxW = math.max(w1, w3, w4, w6)
+        local colGap    = 16
+        local nameColW  = math.max(textSize(sum.t1 or ""), textSize(sum.t2 or ""))
+        local scoreColW = math.max(textSize(sum.s1 or ""), textSize(sum.s2 or ""))
+        local teamRowW  = nameColW + colGap + scoreColW
+
+        local win = sum.win or 0
+        local winnerNames = (win == 1 and sum.t1) or (win == 2 and sum.t2) or "—"
+        local winnerStr = "Winner: " .. winnerNames
+
+        local w1   = textSize(sum.date or "")
+        local wWin = textSize(winnerStr)
+        local maxW = math.max(w1, teamRowW, wWin)
         
         local boxW = math.min(drawW, math.floor(maxW + padX * 2 + 0.5))
         local boxH = math.floor(padY * 2 + (lineDY * (linesN - 1)) + size + 0.5)
@@ -555,13 +568,18 @@ function ArchiveBrowser:draw()
           
           local tx = x0 + padX
           local ty = y0 + boxH - padY - size
-          
+
+          local scoreX = tx + nameColW + colGap
+
           text(sum.date or "", tx, ty); ty = ty - lineDY
-          text("Teams:", tx, ty)
-          text(sum.t1 or "", tx + labelW, ty); ty = ty - lineDY
-          text(" ", tx, ty) -- keeps row height consistent
-          text(sum.t2 or "", tx + labelW, ty); ty = ty - lineDY
-          text(sum.scores or "", tx, ty)
+
+          text(sum.t1 or "", tx, ty)
+          text(sum.s1 or "", scoreX, ty); ty = ty - lineDY
+
+          text(sum.t2 or "", tx, ty)
+          text(sum.s2 or "", scoreX, ty); ty = ty - lineDY
+
+          pushStyle(); fill(255, 205, 90, a); text(winnerStr, tx, ty); popStyle()
         end
         
         popStyle()

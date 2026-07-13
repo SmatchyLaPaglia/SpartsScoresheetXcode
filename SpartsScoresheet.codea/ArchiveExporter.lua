@@ -115,12 +115,15 @@ function ArchiveExporter:_doSnapshotNow(ss)
       do
         pushStyle()
         font("Chalkduster")
-        local spY = topY + (m.leftRowH * 1.85) - 20 -- sy is 0 in exporter
         fontSize(38)
         fill(231, 235)   -- near white, not pure
         textAlign(CENTER)
         textMode(CENTER)
-        text(os.date("%B %d, %Y"), WIDTH * 0.5, spY)
+        local dateStr = os.date("%B %d, %Y")
+        local _, dh = textSize(dateStr)
+        -- pin the date 5px below the top of the image (counteract the baseShift translate)
+        local spY = (totalH - 5 - dh * 0.5) - baseShift
+        text(dateStr, WIDTH * 0.5, spY)
         popStyle()
       end
       
