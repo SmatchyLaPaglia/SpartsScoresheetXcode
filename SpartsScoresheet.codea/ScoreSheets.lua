@@ -479,14 +479,15 @@ function ScoreSheets:draw()
         local dir = dirs[(i - 1) % 4 + 1]
         local dealer = self:_dealerName(i)
         local prefix = tostring(i)..": "..dir.." - deal: "
-        if i == 1 then
+        if i == 1 or i == 2 then
           text(prefix, lx, ly)
           local pw = textSize(prefix)
-          fill(60, 130, 240)   -- tappable blue for the first dealer name
+          fill(60, 130, 240)   -- tappable blue for the dealer name
           text(dealer, lx + pw, ly)
           local nw, nh = textSize(dealer)
           -- screen-space hit rect (add this row translate offset)
-          self._dealerHit = { x = lx + pw, y = ly + rowOffY, w = nw, h = nh }
+          local hit = { x = lx + pw, y = ly + rowOffY, w = nw, h = nh }
+          if i == 1 then self._dealerHit = hit else self._dealer2Hit = hit end
         else
           text(prefix..dealer, lx, ly)
         end
@@ -980,6 +981,15 @@ function ScoreSheets:touched(t)
     local h = self._dealerHit
     if t.x >= h.x and t.x <= h.x + h.w and t.y >= h.y and t.y <= h.y + h.h then
       self:_cycleFirstDealer()
+      if saveGameState then saveGameState() end
+      return true
+    end
+  end
+
+  if t.state == BEGAN and self._dealer2Hit then
+    local h = self._dealer2Hit
+    if t.x >= h.x and t.x <= h.x + h.w and t.y >= h.y and t.y <= h.y + h.h then
+      self:_cycleSecondDealer()
       if saveGameState then saveGameState() end
       return true
     end
@@ -1550,12 +1560,36 @@ end
 
 function ScoreSheets:_setFirstDealer(p)
   self.firstDealer = p
-  -- "for now": second dealer is the first player of the opposite team
-  self.secondDealer = (p <= 2) and 3 or 1
+  -- second dealer must be one of the two players on the opposite team;
+  -- keep the current choice if it still qualifies, else default to the
+  -- opposite team first player.
+  local oppFirst = (p <= 2) and 3 or 1
+  if self.secondDealer ~= oppFirst and self.secondDealer ~= (oppFirst + 1) then
+    self.secondDealer = oppFirst
+  end
 end
 
 function ScoreSheets:_cycleFirstDealer()
   self:_setFirstDealer((self.firstDealer % 4) + 1)
+end
+
+function ScoreSheets:_setSecondDealer(p)
+  -- constrain to the two players on the opposite team from the first dealer
+  local oppFirst = (self.firstDealer <= 2) and 3 or 1
+  if p == oppFirst or p == (oppFirst + 1) then
+    self.secondDealer = p
+  else
+    self.secondDealer = oppFirst
+  end
+end
+
+function ScoreSheets:_cycleSecondDealer()
+  local oppFirst = (self.firstDealer <= 2) and 3 or 1
+  if self.secondDealer == oppFirst then
+    self:_setSecondDealer(oppFirst + 1)
+  else
+    self:_setSecondDealer(oppFirst)
+  end
 end
 
 -------------------------------------------------

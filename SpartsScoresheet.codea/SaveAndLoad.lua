@@ -9,6 +9,7 @@ function saveGameState()
 
   -- first dealer (drives dealer rotation across hands)
   saveLocalData("firstDealer", sheets.firstDealer or 1)
+  saveLocalData("secondDealer", sheets.secondDealer or 3)
   
   for hi, table in ipairs(sheets.tables) do
     for ti = 1, 2 do
@@ -89,6 +90,9 @@ function loadGameState()
 
   if sheets._setFirstDealer then
     sheets:_setFirstDealer(readLocalData("firstDealer", 1))
+  end
+  if sheets._setSecondDealer then
+    sheets:_setSecondDealer(readLocalData("secondDealer", -1))
   end
 
   -- Restore hand-1 player names from disk. init() seeds the name text fields
