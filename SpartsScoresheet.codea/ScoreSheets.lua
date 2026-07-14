@@ -475,7 +475,7 @@ function ScoreSheets:draw()
         local lx      = m.innerX + uiInset
         local ly      = topY
         
-        local dirs = {"pass left", "pass right", "the Kreskin", "the hold"}
+        local dirs = {"pass left", "pass right", "pass across", "the hold"}
         local dir = dirs[(i - 1) % 4 + 1]
         local dealer = self:_dealerName(i)
         local prefix = tostring(i)..": "..dir.." - dealer: "
@@ -1509,7 +1509,7 @@ function ScoreSheets:_stackMetrics()
   
   -- gap between hands: ~ one row height (fallback if metrics not ready yet)
   local rowH = (t and t.metrics and t.metrics.leftRowH) or 16
-  local gapH = rowH * 1.2
+  local gapH = rowH * 1.2 + 10   -- extra 10px between a hand and the next hand's info text
   
   return stepH, gapH
 end
