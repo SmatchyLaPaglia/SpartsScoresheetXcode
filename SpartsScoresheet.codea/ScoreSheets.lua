@@ -686,7 +686,7 @@ if not self._gameOver then
       local tableCenterY = (HEIGHT/2) + ( - (i-1) * d + sy )
       local tableBottomY = tableCenterY - (stepH/2)
       
-      local pad = 15
+      local pad = 23   -- 8px lower than the original 15
       self.newBtn.y = tableBottomY - pad - self.newBtn.h
       
       -- keep the sensor aligned with the drawn rect
