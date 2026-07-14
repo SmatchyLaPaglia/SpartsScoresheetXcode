@@ -587,13 +587,19 @@ function ArchiveBrowser:draw()
     end
   end
   
-  -- close button (top-left) — no top bar now
+  -- close button (top-left) — inset by the left safe-area so it clears the notch/rounded corner
+  local closeX = 18
+  local ok, insLeft = pcall(function() return objc.viewer.view.safeAreaInsets.left end)
+  if ok and type(insLeft) == "number" and insLeft > closeX then
+    closeX = insLeft + 14
+  end
+  self._closeX = closeX
   pushStyle()
   fill(255,255,255,240)
   fontSize(34)
   textAlign(LEFT)
   textMode(CENTER)
-  text("✕", 18, HEIGHT-28)
+  text("✕", closeX, HEIGHT-28)
   popStyle()
 end
 
@@ -642,7 +648,7 @@ function ArchiveBrowser:touched(t)
   
   -- close tap area (top-left)
   if t.state == BEGAN then
-    if t.x < 72 and t.y > HEIGHT-64 then
+    if t.x < (self._closeX or 18) + 36 and t.y > HEIGHT-64 then
       self:close()
       return true
     end
