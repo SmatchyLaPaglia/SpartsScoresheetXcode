@@ -488,6 +488,26 @@ function ScoreSheets:draw()
           -- screen-space hit rect (add this row translate offset)
           local hit = { x = lx + pw, y = ly + rowOffY, w = nw, h = nh }
           if i == 1 then self._dealerHit = hit else self._dealer2Hit = hit end
+
+          -- blue (i) info icon just after the dealer name
+          local iconR  = nh * 0.34
+          local iconCx = lx + pw + nw + iconR + 12
+          local iconCy = ly + nh * 0.5
+          pushStyle()
+          ellipseMode(CENTER)
+          noStroke()
+          fill(60, 130, 240)
+          ellipse(iconCx, iconCy, iconR * 2)
+          fill(255)
+          font("HelveticaNeue-Bold")
+          fontSize(iconR * 1.5)
+          textAlign(CENTER)
+          textMode(CENTER)
+          text("i", iconCx, iconCy)
+          popStyle()
+          local ipad = 6
+          local ihit = { x = iconCx - iconR - ipad, y = iconCy - iconR - ipad + rowOffY, w = (iconR + ipad) * 2, h = (iconR + ipad) * 2 }
+          if i == 1 then self._info1Hit = ihit else self._info2Hit = ihit end
         else
           text(prefix..dealer, lx, ly)
         end
@@ -993,6 +1013,17 @@ function ScoreSheets:touched(t)
       self:_cycleSecondDealer()
       if saveGameState then saveGameState() end
       return true
+    end
+  end
+
+  if t.state == BEGAN then
+    local ih = self._info1Hit
+    if ih and t.x >= ih.x and t.x <= ih.x + ih.w and t.y >= ih.y and t.y <= ih.y + ih.h then
+      self:_presentDealerInfo(); return true
+    end
+    ih = self._info2Hit
+    if ih and t.x >= ih.x and t.x <= ih.x + ih.w and t.y >= ih.y and t.y <= ih.y + ih.h then
+      self:_presentDealerInfo(); return true
     end
   end
 
@@ -1514,6 +1545,28 @@ alert:addAction_(cancel)
 
 local vc = objc.viewer
 vc:presentViewController_animated_completion_(alert, true, nil)
+end
+
+function ScoreSheets:_presentDealerInfo()
+  local UIAlertController = objc.UIAlertController
+  local UIAlertAction = objc.UIAlertAction
+
+  local alert = UIAlertController:alertControllerWithTitle_message_preferredStyle_(
+    "Whose deal is it?",
+    "The app can automatically tell you whose deal it is, as long as you tell it who dealt first and who dealt second.\n\nTo set the first dealer, tap the blue name above the first hand's scoresheet. To set the second dealer, tap the blue name above the second hand's scoresheet.\n\nThe app will take it from there.",
+    objc.enum.UIAlertControllerStyle.alert
+  )
+
+  local ok = UIAlertAction:actionWithTitle_style_handler_(
+    "Got it",
+    objc.enum.UIAlertActionStyle.default,
+    nil
+  )
+
+  alert:addAction_(ok)
+
+  local vc = objc.viewer
+  vc:presentViewController_animated_completion_(alert, true, nil)
 end
 
 function ScoreSheets:_currentNameStamp()
