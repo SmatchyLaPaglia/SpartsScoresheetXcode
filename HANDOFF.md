@@ -2,13 +2,38 @@
 
 ## Current State
 
-**Commit:** `b1173c4` on `main` (plus this HANDOFF update). App builds, launches,
-and renders correctly on iPhone 17 simulator (`1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044`).
+**Commit:** `de99bef` on `main`. App builds, launches, and renders correctly on
+iPhone 17 simulator (`1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044`).
+
+**Uncommitted local changes (working tree, not yet committed):**
+`CheckboxCell.lua`, `IncrementingCell.lua`, `ScoreTable.lua` — adds a `disabled`
+flag to both cell types (muted-but-opaque styling, touch blocked while
+disabled) and wires it up in `ScoreTable:draw()` so that while either team has
+shot the moon, **both teams'** hearts and queen-of-spades cells are locked
+(can't be manually overridden away from the forced 13/0 + queen values). The
+moon checkboxes themselves stay tappable so the shot can be undone. Not yet
+committed — confirm this is intentional/finished before committing.
 
 **The app is landscape-only by design** — the scoresheet renders sideways relative
 to the simulator's portrait chrome. Not a bug; don't chase "rotation."
 
-## Completed this session — dealer tracking + archive refinements
+## Completed since last HANDOFF update (not previously logged here)
+The prior HANDOFF update (`b04349b`) stopped at commit `b1173c4`, but five more
+commits landed without a HANDOFF update:
+- **Info (i) icons** next to hand 1/2 dealer names (`81846d9`) — tapping shows a
+  native alert explaining the tap-to-set-dealer mechanic.
+- **New Hand button** nudged 8px lower (`afff4b5`).
+- **Archive browser close (✕)** inset by the device's left safe-area so it
+  clears the notch/rounded corner in landscape (`f71ff9c`).
+- Renamed the "the Kreskin" pass-direction label to **"pass across"**
+  (`7abfcb9`) — affects both the live sheet and archive image labels
+  (`ScoreSheets.lua`, `ArchiveExporter.lua`).
+- Added **`STRUCTURE.md`** (`de99bef`) — an architecture reference sized for
+  pasting into a Claude Project's knowledge, so a chat session without repo
+  access can still reason about where a bug likely lives. Not a code change;
+  keep it updated if file responsibilities shift meaningfully.
+
+## Completed earlier session — dealer tracking + archive refinements
 
 ### Dealer tracking (who deals each hand)
 - **Info label** reads `"N: pass <dir> - dealer: <Name>"` (dropped the old `"HAND "`
@@ -68,8 +93,14 @@ smallest one-line/one-value edits the delegation overhead outweighed the context
 savings (the savings mechanism is offloading bulk reads, not tiny edits).
 
 ## Task Queue
-1. [ ] Fix SPARTS logo tap to play intro video (`_spartsHit` handler exists in
-   `ScoreSheets:touched`; radius now scales with `logoSize`).
+1. [ ] Fix SPARTS logo tap to play intro video. **Root cause confirmed:**
+   `movieActive` is declared in `Main.lua:setup()` and set to `false`, but is
+   **never set to `true` anywhere in the codebase** — so the
+   `if movieActive then videoPlayer:showAndAutoplayMOV(...)` branch in
+   `ScoreSheets:touched` (the `_spartsHit` handler) is dead code; the tap is
+   detected (hit-test/radius are fine) but the video call is always skipped.
+   Fix is presumably to set `movieActive = true` at the appropriate point
+   (or drop the guard) — needs a decision on when the video should be armed.
 2. [ ] (open) whatever the user assigns next.
 
 ## Simulators
