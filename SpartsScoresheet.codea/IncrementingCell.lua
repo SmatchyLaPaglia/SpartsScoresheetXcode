@@ -26,6 +26,7 @@ function IncrementingCell:init(x, y, w, h, initialValue)
   self.dragAccum   = 0     -- accumulated pixels since last step
 
   self.isPressed = false
+  self.disabled = false
 
   self.sensor = Sensor{ parent = self }
 
@@ -98,13 +99,36 @@ function IncrementingCell:init(x, y, w, h, initialValue)
 
 end
 
+-- Mutes toward gray at FULL alpha (never toward transparent) so a disabled
+-- cell's background stays fully opaque and can't let whatever is drawn
+-- underneath (e.g. the static chip labels) show through.
+local function mutedOpaque(c)
+  local gray, mix = 130, 0.55
+  return color(
+    c.r + (gray - c.r) * mix,
+    c.g + (gray - c.g) * mix,
+    c.b + (gray - c.b) * mix,
+    c.a
+  )
+end
+
 function IncrementingCell:draw()
   pushStyle()
   rectMode(CORNER)
+
+  local strokeCol = self.colStroke
+  if self.disabled then
+    strokeCol = mutedOpaque(strokeCol)
+  end
+
   if self.isPressed then
-    fill(self.colBgPressed) ; stroke(self.colStroke) ; strokeWidth(2)
+    local bgCol = self.colBgPressed
+    if self.disabled then bgCol = mutedOpaque(bgCol) end
+    fill(bgCol) ; stroke(strokeCol) ; strokeWidth(2)
   else
-    fill(self.colBg) ; stroke(self.colStroke) ; strokeWidth(1)
+    local bgCol = self.colBg
+    if self.disabled then bgCol = mutedOpaque(bgCol) end
+    fill(bgCol) ; stroke(strokeCol) ; strokeWidth(1)
   end
   rect(self.x, self.y, self.w, self.h)
 
@@ -142,11 +166,15 @@ function IncrementingCell:draw()
     local b = base.b + (red.b - base.b) * p
     local a = base.a + (red.a - base.a) * p
 
+    if self.disabled then a = a * 0.45 end
+
     fill(color(r, g, b, a))
     text(label, self.x + self.w/2, self.y + self.h/2 + popY)
   else
     -- normal label (already there)
-    fill(col)
+    local textCol = col
+    if self.disabled then textCol = color(col.r, col.g, col.b, col.a * 0.45) end
+    fill(textCol)
     text(label, self.x + self.w/2, self.y + self.h/2)
   end
 
@@ -211,6 +239,7 @@ function IncrementingCell:_step(delta, source)
 end
 
 function IncrementingCell:touched(t)
+  if self.disabled then return false end
   if not self:_ownsTouch(t) then
     return false
   end

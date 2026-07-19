@@ -473,13 +473,22 @@ end
 function ScoreTable:draw()
   -- layout + skin + sync
   self:layout()
-  
+
   local m = self.metrics
   local x = m.x
-  
+
   -- Helpers to read widths from edge indices
   local function w(i0, i1) return (x[i1] - x[i0]) end
-  
+
+  -- Lock hearts/queen entry on both teams while either team has shot the moon,
+  -- so the forced 13/0 + queen values can't be manually overridden. Moon
+  -- checkboxes themselves stay tappable so the shot can be undone.
+  local moonActive = (self.cells.t1_moon.value == true) or (self.cells.t2_moon.value == true)
+  self.cells.t1_hearts.disabled = moonActive
+  self.cells.t2_hearts.disabled = moonActive
+  self.cells.t1_qs.disabled     = moonActive
+  self.cells.t2_qs.disabled     = moonActive
+
   --------------------------------------------------------------------------
   -- TOP HEADER (same semantics, computed by spans)
   --------------------------------------------------------------------------
@@ -659,8 +668,16 @@ function ScoreTable:touched(t)
   
   if t1_changed and self.cells.t1_moon.value == true then
     self.cells.t2_moon.value = false
+    self.cells.t1_hearts:set(13)
+    self.cells.t1_qs.value = true
+    self.cells.t2_hearts:set(0)
+    self.cells.t2_qs.value = false
   elseif t2_changed and self.cells.t2_moon.value == true then
     self.cells.t1_moon.value = false
+    self.cells.t2_hearts:set(13)
+    self.cells.t2_qs.value = true
+    self.cells.t1_hearts:set(0)
+    self.cells.t1_qs.value = false
   end
   
   local t1_qs_changed = (self.cells.t1_qs.value ~= prev_t1_qs)

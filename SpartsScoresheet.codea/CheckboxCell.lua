@@ -10,6 +10,7 @@ function CheckboxCell:init(x, y, w, h, initialValue)
   self.x, self.y, self.w, self.h = x, y, w, h
   self.value = (initialValue == true)  -- boolean
   self.isPressed = false
+  self.disabled = false
   
   self.colStroke    = self.colStroke    or Theme.gridLine
   self.colBg        = self.colBg        or Theme.cellBg
@@ -50,29 +51,54 @@ function CheckboxCell:_ownsTouch(t)
   return false
 end
 
+-- Mutes toward gray at FULL alpha (never toward transparent) so a disabled
+-- cell's background stays fully opaque and can't let whatever is drawn
+-- underneath (e.g. the static chip labels) show through.
+local function mutedOpaque(c)
+  local gray, mix = 130, 0.55
+  return color(
+    c.r + (gray - c.r) * mix,
+    c.g + (gray - c.g) * mix,
+    c.b + (gray - c.b) * mix,
+    c.a
+  )
+end
+
 function CheckboxCell:draw()
   pushStyle()
   rectMode(CORNER)
-  
+
   -- background + border (themed; thicker while pressed)
   local bg = self.isPressed and self.colBgPressed or self.colBg
+  if self.disabled then
+    bg = mutedOpaque(bg)
+  end
   fill(bg)
-  stroke(self.colStroke)
+
+  local colStroke = self.colStroke
+  if self.disabled then
+    colStroke = mutedOpaque(colStroke)
+  end
+  stroke(colStroke)
   strokeWidth(self.isPressed and 2 or 1)
   rect(self.x, self.y, self.w, self.h)
-  
+
   -- inner square
   local box = math.min(self.w, self.h) * 0.55
   local bx  = self.x + (self.w - box)/2
   local by  = self.y + (self.h - box)/2
   noFill()
-  stroke(self.colStroke)
+  stroke(colStroke)
   strokeWidth(1)
   rect(bx, by, box, box)
-  
+
   -- tick (draw last so it isn't covered)
   if self.value then
-    stroke(self.colTick)
+    local colTick = self.colTick
+    if self.disabled then
+      colTick = color(colTick.r, colTick.g, colTick.b, colTick.a * 0.45)
+    end
+    stroke(colTick)
     strokeWidth(math.max(2, box*0.12))
     local x1,y1 = bx + box*0.20, by + box*0.55
     local x2,y2 = bx + box*0.42, by + box*0.30
@@ -85,6 +111,7 @@ function CheckboxCell:draw()
 end
 
 function CheckboxCell:touched(t)
+  if self.disabled then return false end
   if not self:_ownsTouch(t) then return false end
   self.sensorPress:touched(t)
   self.sensorTap:touched(t)
