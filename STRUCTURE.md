@@ -130,17 +130,28 @@ interactive widgets. Key pieces:
   notch/orientation info every single frame (not cached across frames
   except in `self.metrics`). It also positions the long-press sensors used
   for name-box interactions.
-- `:draw()` calls `:layout()`, then draws headers, name cells (with
-  placeholder-gray vs. real-name-black text color), the dealer's blue
-  outline box, chip labels ("bid/took", "hearts", "queen", "moon"), the
-  interactive cells, and the right-hand score table (reads already-computed
-  `team.spadesScore` etc. — **this file does not compute scores**, it only
-  formats/displays what `ScoreLedger` already wrote onto the team tables).
+- `:draw()` calls `:layout()`, then — before drawing anything — sets
+  `self.cells.{t1,t2}_hearts.disabled` and `{t1,t2}_qs.disabled` to
+  `moonActive` (true whenever *either* team's moon checkbox is checked).
+  This is the **moon-shot lock**: while a moon shot is active, neither
+  team's hearts nor queen cell can be manually edited (grayed out, touch
+  blocked — see `CheckboxCell.lua`/`IncrementingCell.lua`'s `disabled`
+  handling), so the forced 13/0 + queen values can't be walked back except
+  by un-checking moon. The moon checkboxes themselves are never disabled.
+  Then draws headers, name cells (with placeholder-gray vs.
+  real-name-black text color), the dealer's blue outline box, chip labels
+  ("bid/took", "hearts", "queen", "moon"), the interactive cells, and the
+  right-hand score table (reads already-computed `team.spadesScore` etc. —
+  **this file does not compute scores**, it only formats/displays what
+  `ScoreLedger` already wrote onto the team tables).
 - `:touched(t)` fans the touch out to every cell + long-press sensor, then
   has **special-cased moon/queen exclusivity logic**: checking one team's
-  moon box forces that team's hearts to 13 and queen to true, and force-
-  clears the other team's moon/hearts/queen. Same mutual-exclusion pattern
-  for the queen checkboxes alone. This is duplicated conceptually in
+  moon box force-clears the other team's moon, and immediately sets that
+  team's hearts to 13 + queen to true and the other team's hearts to 0 +
+  queen to false (via direct `:set()`/`.value` writes, for instant UI
+  feedback the same frame — this is what the `disabled` lock above then
+  protects from being un-done by hand). Same mutual-exclusion pattern for
+  the queen checkboxes alone. This is duplicated conceptually in
   `ScoreRules.syncHeartsMoon` (see below) — **two independent
   implementations of the same "only one team can moon" rule exist**: one
   here (immediate UI feedback on tap) and one in `ScoreRules.lua` (the
@@ -348,15 +359,24 @@ range `[min,max]` (default 0–13): stepping past either boundary lands on
 number won't go past X" confusion reports that are actually working as
 designed. Per-touch-id ownership (`_owners`, class-level) is claimed only
 on `BEGAN` inside the cell's box and held until `ENDED`/`CANCELLED`; if a
-cell "eats" a later, unrelated touch with a recycled id, look here.
+cell "eats" a later, unrelated touch with a recycled id, look here. Also has
+a `disabled` flag (see `CheckboxCell.lua` below — both widgets share the
+same pattern) used on the hearts cells while a moon shot is active.
 
 ### `CheckboxCell.lua`
 Simpler tap-to-toggle widget (queen/moon), same per-touch ownership pattern
 as `IncrementingCell`. Has a `disabled` flag (set every frame by
-`ScoreTable:draw()` while the opposing team's moon is active) that mutes
-its colors and blocks `:touched()` entirely — if a checkbox looks "grayed
-out but still tappable" or vice versa, the mismatch is between this
-mute-color logic and the `self.disabled` gate in `:touched()`.
+`ScoreTable:draw()` — both teams' hearts/queen cells are disabled together
+whenever *either* team's moon checkbox is checked, not just the opposing
+team's; the moon checkboxes themselves are never disabled by this, so the
+shot stays undoable) that mutes its colors toward gray at full alpha
+(`mutedOpaque()`, a local helper duplicated identically in both
+`CheckboxCell.lua` and `IncrementingCell.lua`) and blocks `:touched()`
+entirely — if a checkbox looks "grayed out but still tappable" or vice
+versa, the mismatch is between this mute-color logic and the
+`self.disabled` gate in `:touched()`. If the two `mutedOpaque()` copies
+ever need to diverge (or get out of sync by accident), that's the one bit
+of copy-paste in this pair of files.
 
 ### `Sensor.lua`
 A generic gesture-recognizer utility (tap/drag/swipe/long-press/zoom/drop/
@@ -455,6 +475,7 @@ archives live in the device's `Documents:` sandbox, not here.
 | Tap lands on wrong cell / touch feels "stuck" to one widget | Per-touch ownership tables: `IncrementingCell._owners` / `CheckboxCell._owners`; then `ScoreSheets:touched()`'s routing order |
 | Scrolling fights with cell dragging | `ScoreSheets:touched()` — two-finger vs one-finger vs cell-ownership precedence |
 | Moon/queen checkbox behaves inconsistently across teams | `ScoreTable:touched()`'s inline exclusivity logic **and** `ScoreRules.syncHeartsMoon` (two implementations of one rule) |
+| Hearts/queen cell stuck locked (or editable when it shouldn't be) around a moon shot | `ScoreTable:draw()`'s `moonActive` disabled-lock assignment, then `CheckboxCell`/`IncrementingCell`'s `self.disabled` gate in `:touched()`/`:draw()` |
 | Wrong dealer name on hand 3+ | `ScoreSheets._dealerForHand` / `_partnerOf` |
 | Data lost or wrong after relaunch | Both persistence paths in "Persistence" above — check which one actually wrote/read |
 | Archive image/summary wrong or stuck faded | `ArchiveExporter` (render-time state) vs `ArchiveBrowser._plaqueA`/`metaCache` (browse-time state) |

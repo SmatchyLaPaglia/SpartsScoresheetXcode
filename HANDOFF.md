@@ -2,23 +2,14 @@
 
 ## Current State
 
-**Commit:** `de99bef` on `main`. App builds, launches, and renders correctly on
+**Commit:** `68a4f02` on `main`. App builds, launches, and renders correctly on
 iPhone 17 simulator (`1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044`).
-
-**Uncommitted local changes (working tree, not yet committed):**
-`CheckboxCell.lua`, `IncrementingCell.lua`, `ScoreTable.lua` — adds a `disabled`
-flag to both cell types (muted-but-opaque styling, touch blocked while
-disabled) and wires it up in `ScoreTable:draw()` so that while either team has
-shot the moon, **both teams'** hearts and queen-of-spades cells are locked
-(can't be manually overridden away from the forced 13/0 + queen values). The
-moon checkboxes themselves stay tappable so the shot can be undone. Not yet
-committed — confirm this is intentional/finished before committing.
 
 **The app is landscape-only by design** — the scoresheet renders sideways relative
 to the simulator's portrait chrome. Not a bug; don't chase "rotation."
 
 ## Completed since last HANDOFF update (not previously logged here)
-The prior HANDOFF update (`b04349b`) stopped at commit `b1173c4`, but five more
+The prior HANDOFF update (`b04349b`) stopped at commit `b1173c4`, but six more
 commits landed without a HANDOFF update:
 - **Info (i) icons** next to hand 1/2 dealer names (`81846d9`) — tapping shows a
   native alert explaining the tap-to-set-dealer mechanic.
@@ -32,6 +23,16 @@ commits landed without a HANDOFF update:
   pasting into a Claude Project's knowledge, so a chat session without repo
   access can still reason about where a bug likely lives. Not a code change;
   keep it updated if file responsibilities shift meaningfully.
+- **Moon-shot UI lock** (`68a4f02`) — added a `disabled` flag to `CheckboxCell`
+  and `IncrementingCell` (muted-but-opaque styling, touch blocked while
+  disabled), wired up in `ScoreTable:draw()` so that while either team has
+  shot the moon, **both teams'** hearts and queen-of-spades cells are locked
+  (can't be manually overridden away from the forced 13/0 + queen values).
+  Moon checkboxes themselves stay tappable so the shot can be undone.
+  Verified on-device via a temporary one-shot test hook in `ScoreSheets:draw`
+  (forced `t1_moon.value = true` at launch, screenshotted, then reverted —
+  see "No touch injection in the workflow" below for why this pattern is
+  used instead of a real tap).
 
 ## Completed earlier session — dealer tracking + archive refinements
 
