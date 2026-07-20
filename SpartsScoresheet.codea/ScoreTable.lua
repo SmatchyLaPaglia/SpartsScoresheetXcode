@@ -480,14 +480,51 @@ function ScoreTable:draw()
   -- Helpers to read widths from edge indices
   local function w(i0, i1) return (x[i1] - x[i0]) end
 
-  -- Lock hearts/queen entry on both teams while either team has shot the moon,
-  -- so the forced 13/0 + queen values can't be manually overridden. Moon
-  -- checkboxes themselves stay tappable so the shot can be undone.
-  local moonActive = (self.cells.t1_moon.value == true) or (self.cells.t2_moon.value == true)
-  self.cells.t1_hearts.disabled = moonActive
-  self.cells.t2_hearts.disabled = moonActive
-  self.cells.t1_qs.disabled     = moonActive
-  self.cells.t2_qs.disabled     = moonActive
+  -- Moon-shot lock: while a team has shot the moon, the *other* team's
+  -- hearts/queen/moon cells are all disabled+grayed (fully locked out), while
+  -- the shooting team's hearts/queen stay disabled but full-color (visible,
+  -- just non-interactive) and its moon checkbox stays the only interactive
+  -- cell in the hearts area (drawn over with a moon emoji below) — it's the
+  -- only way to undo the shot.
+  local moonShooter = self.cells.t1_moon.value and 1 or (self.cells.t2_moon.value and 2 or nil)
+
+  local function setMoonLock(prefix, isShooter)
+    local hearts = self.cells[prefix.."_hearts"]
+    local qs     = self.cells[prefix.."_qs"]
+    local moon   = self.cells[prefix.."_moon"]
+    if moonShooter == nil then
+      hearts.disabled, hearts.muted = false, false
+      qs.disabled,     qs.muted     = false, false
+      moon.disabled,   moon.muted   = false, false
+      hearts.colBg, hearts.colText  = Theme.cellBg, Theme.textAccentBlue
+      qs.colBg,     qs.colTick      = Theme.cellBg, Theme.checkboxTick
+      moon.colBg,   moon.colTick    = Theme.cellBg, Theme.checkboxTick
+    elseif isShooter then
+      hearts.disabled, hearts.muted = true, false
+      qs.disabled,     qs.muted     = true, false
+      moon.disabled,   moon.muted   = false, false
+      -- Same slab color as the chip labels above these cells (Theme.
+      -- leftHeaderBg), gold number/tick, so it reads as part of the
+      -- existing theme instead of a one-off black block.
+      hearts.colBg, hearts.colText  = Theme.leftHeaderBg, Theme.moonGold
+      qs.colBg,     qs.colTick      = Theme.leftHeaderBg, Theme.moonGold
+    else
+      -- Same slab color as the shooting team's cells, but text/tick color
+      -- matched to the background too — fully covers the "0"/tick rather
+      -- than graying them (and no gold anywhere on this team's side).
+      -- muted stays false so mutedOpaque() doesn't shift the background
+      -- away from an exact match with the shooter's cells.
+      hearts.disabled, hearts.muted = true, false
+      qs.disabled,     qs.muted     = true, false
+      moon.disabled,   moon.muted   = true, false
+      hearts.colBg, hearts.colText  = Theme.leftHeaderBg, Theme.leftHeaderBg
+      qs.colBg,     qs.colTick      = Theme.leftHeaderBg, Theme.leftHeaderBg
+      moon.colBg,   moon.colTick    = Theme.leftHeaderBg, Theme.leftHeaderBg
+    end
+  end
+
+  setMoonLock("t1", moonShooter == 1)
+  setMoonLock("t2", moonShooter == 2)
 
   --------------------------------------------------------------------------
   -- TOP HEADER (same semantics, computed by spans)
@@ -570,7 +607,40 @@ function ScoreTable:draw()
   self.cells.t2_p1_bid:draw()   ; self.cells.t2_p1_took:draw()
   self.cells.t2_p2_bid:draw()   ; self.cells.t2_p2_took:draw()
   self.cells.t2_hearts:draw()   ; self.cells.t2_qs:draw() ; self.cells.t2_moon:draw()
-  
+
+  -- Moon-shot indicator: same slab color as the chip labels (instead of a
+  -- black square) behind the moon emoji over the shooter's moon checkbox —
+  -- the checkbox itself is untouched underneath and stays fully tappable,
+  -- it's just visually obscured (see disabled/muted above). Gold outline
+  -- around the group left off for now.
+  if moonShooter then
+    local moonCell = (moonShooter == 1) and self.cells.t1_moon or self.cells.t2_moon
+
+    -- Rect covering exactly the checkbox, so the crescent's concave cutout
+    -- reveals this background instead of the checkbox/tick underneath. A
+    -- rect matched to the cell's own bounds is simpler to keep aligned
+    -- than trying to center a circle behind the glyph.
+    pushStyle()
+    rectMode(CORNER)
+    fill(Theme.leftHeaderBg)
+    noStroke()
+    rect(moonCell.x, moonCell.y, moonCell.w, moonCell.h)
+    popStyle()
+
+    pushStyle()
+    textMode(CORNER)
+    textAlign(LEFT)
+    -- Crescent (not the full moon 🌕): reads unmistakably as "moon" at a
+    -- glance. Sized to match the "13"-style hearts number, not the cell —
+    -- CORNER-anchored and centered manually since emoji glyphs don't
+    -- vertically center the same way plain digits do in CENTER mode.
+    local moonFS = self.numberFontSize
+    fontSize(moonFS)
+    fill(255, 255, 255, 255)
+    text("🌙", moonCell.x + (moonCell.w - moonFS)/2, moonCell.y + (moonCell.h - moonFS)/2)
+    popStyle()
+  end
+
   --------------------------------------------------------------------------
   -- RIGHT TABLE (mini headers + values), now using x edges directly
   --------------------------------------------------------------------------

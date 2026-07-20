@@ -45,5 +45,8 @@ Theme = {
   -- Checkbox fill
   checkboxTick       = color(0, 0, 0, 255),
   checkboxBox        = color(0, 0, 0, 255),
+
+  -- Moon-shot indicator (matches the archive browser's gold "Winner" text)
+  moonGold           = color(255, 205, 90, 255),
 }
 

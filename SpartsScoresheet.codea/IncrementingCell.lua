@@ -26,7 +26,8 @@ function IncrementingCell:init(x, y, w, h, initialValue)
   self.dragAccum   = 0     -- accumulated pixels since last step
 
   self.isPressed = false
-  self.disabled = false
+  self.disabled = false  -- blocks :touched()
+  self.muted    = false  -- grays out :draw() (independent of disabled)
 
   self.sensor = Sensor{ parent = self }
 
@@ -117,17 +118,17 @@ function IncrementingCell:draw()
   rectMode(CORNER)
 
   local strokeCol = self.colStroke
-  if self.disabled then
+  if self.muted then
     strokeCol = mutedOpaque(strokeCol)
   end
 
   if self.isPressed then
     local bgCol = self.colBgPressed
-    if self.disabled then bgCol = mutedOpaque(bgCol) end
+    if self.muted then bgCol = mutedOpaque(bgCol) end
     fill(bgCol) ; stroke(strokeCol) ; strokeWidth(2)
   else
     local bgCol = self.colBg
-    if self.disabled then bgCol = mutedOpaque(bgCol) end
+    if self.muted then bgCol = mutedOpaque(bgCol) end
     fill(bgCol) ; stroke(strokeCol) ; strokeWidth(1)
   end
   rect(self.x, self.y, self.w, self.h)
@@ -166,14 +167,14 @@ function IncrementingCell:draw()
     local b = base.b + (red.b - base.b) * p
     local a = base.a + (red.a - base.a) * p
 
-    if self.disabled then a = a * 0.45 end
+    if self.muted then a = a * 0.45 end
 
     fill(color(r, g, b, a))
     text(label, self.x + self.w/2, self.y + self.h/2 + popY)
   else
     -- normal label (already there)
     local textCol = col
-    if self.disabled then textCol = color(col.r, col.g, col.b, col.a * 0.45) end
+    if self.muted then textCol = color(col.r, col.g, col.b, col.a * 0.45) end
     fill(textCol)
     text(label, self.x + self.w/2, self.y + self.h/2)
   end

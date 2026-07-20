@@ -10,8 +10,9 @@ function CheckboxCell:init(x, y, w, h, initialValue)
   self.x, self.y, self.w, self.h = x, y, w, h
   self.value = (initialValue == true)  -- boolean
   self.isPressed = false
-  self.disabled = false
-  
+  self.disabled = false  -- blocks :touched()
+  self.muted    = false  -- grays out :draw() (independent of disabled)
+
   self.colStroke    = self.colStroke    or Theme.gridLine
   self.colBg        = self.colBg        or Theme.cellBg
   self.colBgPressed = self.colBgPressed or Theme.cellBgPressed
@@ -70,13 +71,13 @@ function CheckboxCell:draw()
 
   -- background + border (themed; thicker while pressed)
   local bg = self.isPressed and self.colBgPressed or self.colBg
-  if self.disabled then
+  if self.muted then
     bg = mutedOpaque(bg)
   end
   fill(bg)
 
   local colStroke = self.colStroke
-  if self.disabled then
+  if self.muted then
     colStroke = mutedOpaque(colStroke)
   end
   stroke(colStroke)
@@ -95,7 +96,7 @@ function CheckboxCell:draw()
   -- tick (draw last so it isn't covered)
   if self.value then
     local colTick = self.colTick
-    if self.disabled then
+    if self.muted then
       colTick = color(colTick.r, colTick.g, colTick.b, colTick.a * 0.45)
     end
     stroke(colTick)
