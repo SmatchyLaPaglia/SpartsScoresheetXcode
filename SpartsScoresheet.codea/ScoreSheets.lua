@@ -456,7 +456,7 @@ function ScoreSheets:draw()
     for i = 1, #self.tables do
       pushMatrix()
       -- first hand at scrollY==0 is centered; later hands are drawn LOWER (negative offset)
-      local rowOffY = - (i-1) * d + sy - 10
+      local rowOffY = self:_handRowOffset(i)
       translate(0, rowOffY)
       
       -- Hand labels 
@@ -928,16 +928,15 @@ function ScoreSheets:touched(t)
   end
   
   local function forwardTouchToTables(ttouch)
-    local stepH, gapH = self:_stackMetrics()
-    local d = stepH + gapH
-    
+    local stepH = self:_stackMetrics()
+
     for i = 1, #self.tables do
       local tt = {
         id       = ttouch.id,
         state    = ttouch.state,
         tapCount = ttouch.tapCount,
         x        = ttouch.x,
-        y        = ttouch.y - ( - (i-1)*d + self.scrollY ),
+        y        = ttouch.y - self:_handRowOffset(i),
         deltaX   = ttouch.deltaX,
         deltaY   = ttouch.deltaY
       }
@@ -1209,15 +1208,13 @@ function ScoreSheets:touched(t)
   --    Bypass Y-bounds check so horizontal drags tolerate Y drift.
   ------------------------------------------------------------
   if IncrementingCell and IncrementingCell._owners and IncrementingCell._owners[t.id] then
-    local stepH, gapH = self:_stackMetrics()
-    local d = stepH + gapH
     for i = 1, #self.tables do
       local tt = {
         id       = t.id,
         state    = t.state,
         tapCount = t.tapCount,
         x        = t.x,
-        y        = t.y - ( - (i-1)*d + self.scrollY ),
+        y        = t.y - self:_handRowOffset(i),
         deltaX   = t.deltaX,
         deltaY   = t.deltaY
       }
@@ -1513,6 +1510,18 @@ function ScoreSheets:_stackMetrics()
   local gapH = rowH * 1.2 + 10   -- extra 10px between a hand and the next hand's info text
   
   return stepH, gapH
+end
+
+-- Vertical translate applied when drawing hand i's table. Touch forwarding
+-- must invert this exact offset to map a screen touch into that table's
+-- local space — route both through here so they can't drift apart (they
+-- previously did: forwardTouchToTables re-derived its own copy of this
+-- formula and missed the "-10", causing tables to visually sit ~10px away
+-- from where taps actually landed).
+function ScoreSheets:_handRowOffset(i)
+  local stepH, gapH = self:_stackMetrics()
+  local d = stepH + gapH
+  return -(i - 1) * d + self:_effectiveScrollY() - 10
 end
 
 function ScoreSheets:_presentNewGameConfirm()
