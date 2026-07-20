@@ -90,7 +90,7 @@ function ArchiveExporter:_doSnapshotNow(ss)
       local lx      = m.innerX + uiInset   -- EXACT left edge of table
       local ly      = topY + 2             -- small breathing room
       
-      local dirs = {"pass left", "pass right", "pass across", "the hold"}
+      local dirs = {"pass left", "pass right", "the Kreskin", "the hold"}
       local dir = dirs[(i - 1) % 4 + 1]
       text(tostring(i) .. ": " .. dir .. " - dealer: " .. ss:_dealerName(i), lx, ly)
       popStyle()

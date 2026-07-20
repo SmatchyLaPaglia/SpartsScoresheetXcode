@@ -464,6 +464,7 @@ function ScoreSheets:draw()
   end
   
   -- Draw all tables with vertical offset & scroll
+  self._kreskinHits = {}
   do
     local stepH, gapH = self:_stackMetrics()
     local d = stepH + gapH
@@ -490,7 +491,7 @@ function ScoreSheets:draw()
         local lx      = m.innerX + uiInset
         local ly      = topY
         
-        local dirs = {"pass left", "pass right", "pass across", "the hold"}
+        local dirs = {"pass left", "pass right", "the Kreskin", "the hold"}
         local dir = dirs[(i - 1) % 4 + 1]
         local dealer = self:_dealerName(i)
         local prefix = tostring(i)..": "..dir.." - dealer: "
@@ -524,6 +525,17 @@ function ScoreSheets:draw()
           local ipad = 6
           local ihit = { x = iconCx - iconR - ipad, y = iconCy - iconR - ipad + rowOffY, w = (iconR + ipad) * 2, h = (iconR + ipad) * 2 }
           if i == 1 then self._info1Hit = ihit else self._info2Hit = ihit end
+        elseif dir == "the Kreskin" then
+          -- Easter egg: "Kreskin" is a hidden tap target, deliberately not
+          -- visually distinguished from the surrounding text, that offers
+          -- (via a confirm alert, so an accidental tap is harmless) to open
+          -- the Wikipedia page for The Amazing Kreskin.
+          text(prefix..dealer, lx, ly)
+          local pre = tostring(i)..": the "
+          local preW = textSize(pre)
+          local kw, kh = textSize("Kreskin")
+          local khit = { x = lx + preW, y = ly + rowOffY, w = kw, h = kh }
+          table.insert(self._kreskinHits, khit)
         else
           text(prefix..dealer, lx, ly)
         end
@@ -1039,6 +1051,15 @@ function ScoreSheets:touched(t)
     ih = self._info2Hit
     if ih and t.x >= ih.x and t.x <= ih.x + ih.w and t.y >= ih.y and t.y <= ih.y + ih.h then
       self:_presentDealerInfo(); return true
+    end
+  end
+
+  if t.state == BEGAN and self._kreskinHits then
+    for _, kh in ipairs(self._kreskinHits) do
+      if t.x >= kh.x and t.x <= kh.x + kh.w and t.y >= kh.y and t.y <= kh.y + kh.h then
+        self:_presentKreskinConfirm()
+        return true
+      end
     end
   end
 
@@ -1592,6 +1613,46 @@ function ScoreSheets:_presentDealerInfo()
 
   local vc = objc.viewer
   vc:presentViewController_animated_completion_(alert, true, nil)
+end
+
+function ScoreSheets:_presentKreskinConfirm()
+  local UIAlertController = objc.UIAlertController
+  local UIAlertAction = objc.UIAlertAction
+
+  local alert = UIAlertController:alertControllerWithTitle_message_preferredStyle_(
+    nil,
+    "Would you like to learn about The Amazing Kreskin?",
+    objc.enum.UIAlertControllerStyle.alert
+  )
+
+  local yes = UIAlertAction:actionWithTitle_style_handler_(
+    "Yes",
+    objc.enum.UIAlertActionStyle.default,
+    function() self:_openKreskinWiki() end
+  )
+
+  local cancel = UIAlertAction:actionWithTitle_style_handler_(
+    "Cancel",
+    objc.enum.UIAlertActionStyle.destructive,
+    nil
+  )
+
+  alert:addAction_(yes)
+  alert:addAction_(cancel)
+
+  local vc = objc.viewer
+  vc:presentViewController_animated_completion_(alert, true, nil)
+end
+
+function ScoreSheets:_openKreskinWiki()
+  local ok, err = pcall(function()
+    local url = objc.NSURL:URLWithString_("https://en.wikipedia.org/wiki/The_Amazing_Kreskin")
+    local app = objc.UIApplication.sharedApplication
+    app:openURL_options_completionHandler_(url, {}, nil)
+  end)
+  if not ok then
+    devLog("[ScoreSheets:_openKreskinWiki] failed:", err)
+  end
 end
 
 function ScoreSheets:_currentNameStamp()
