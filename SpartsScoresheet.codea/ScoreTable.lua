@@ -679,7 +679,7 @@ function ScoreTable:draw()
     
     -- “Totals” readiness is whatever the ledger decided (nil means “don’t show”)
     local spTotReady = (team.spadesTotal ~= nil) and sReady
-    local hTotReady  = (team.heartsTotal ~= nil)
+    local hTotReady  = (team.heartsTotal ~= nil) and hReady
     local bagsReady  = (team.allBags     ~= nil) and sReady
     local grandReady = (team.gameTotal   ~= nil)
     
