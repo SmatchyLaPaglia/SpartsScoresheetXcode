@@ -21,7 +21,7 @@ Theme = {
   -- Name stripes (alternating fill for the 4 name rows)
   nameStripeLight  = color(238, 238, 238, 255),   -- light gray
   nameStripeDark   = color(220, 235, 225, 255),   -- very light green tint (like screenshot)
-  nameDealerBox    = color(60, 130, 240, 255),    -- blue outline marking the hand dealer name box
+  nameDealerBox    = color(110, 175, 255, 255),   -- blue outline marking the hand dealer name box
   
   -- Right mini headers (small headers above per-column)
   rightMiniHeaderBg  = color(55, 55, 55, 255),

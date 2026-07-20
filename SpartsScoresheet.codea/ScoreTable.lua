@@ -582,10 +582,9 @@ function ScoreTable:draw()
       pushStyle()
       noFill()
       stroke(Theme.nameDealerBox)
-      strokeWidth(2)
+      strokeWidth(6)
       rectMode(CORNER)
-      local inset = 3
-      rect(x[1] + inset, dealerY + inset, w(1,2) - 2*inset, m.leftRowH - 2*inset)
+      rect(x[1], dealerY, w(1,2), m.leftRowH)
       popStyle()
     end
   end
