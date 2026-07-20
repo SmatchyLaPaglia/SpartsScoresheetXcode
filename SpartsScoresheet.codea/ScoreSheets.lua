@@ -414,37 +414,52 @@ function ScoreSheets:draw()
     end
   end
   
-  -- Game over detection:
-  -- Trigger: any team's heartsTotal or spadesTotal >= 600
-  -- Winner: team with higher gameTotal (tie => nil / "TIE")
-  if not self._gameOver then
-    local last = self.tables[#self.tables]
-    if last and last.teams and last.teams[1] and last.teams[2] then
+  -- Game over detection, recomputed fresh every frame (no latch) so that
+  -- editing away a game-ending total un-triggers it just as readily as
+  -- entering one triggers it — see HANDOFF.md for the stuck-banner bug
+  -- this fixes.
+  -- Trigger: any hand's TOTAL SCORES spadesTotal/heartsTotal >= 600 for
+  -- either team. Winner: team with higher gameTotal on the last hand
+  -- (tie => nil / "TIE").
+  do
+    local trig = false
+    for hi = 1, #self.tables do
+      local teams = self.tables[hi].teams
+      local t1 = teams and teams[1]
+      local t2 = teams and teams[2]
+      if t1 and t2 and (
+        (t1.spadesTotal and t1.spadesTotal >= self._gameEndingScore) or
+        (t1.heartsTotal and t1.heartsTotal >= self._gameEndingScore) or
+        (t2.spadesTotal and t2.spadesTotal >= self._gameEndingScore) or
+        (t2.heartsTotal and t2.heartsTotal >= self._gameEndingScore)
+      ) then
+        trig = true
+        break
+      end
+    end
+
+    self._gameOver = trig
+
+    if trig then
+      local last = self.tables[#self.tables]
       local t1 = last.teams[1]
       local t2 = last.teams[2]
-      
-      local trig =
-      (t1.spadesTotal and t1.spadesTotal >= self._gameEndingScore) or
-      (t1.heartsTotal and t1.heartsTotal >= self._gameEndingScore) or
-      (t2.spadesTotal and t2.spadesTotal >= self._gameEndingScore) or
-      (t2.heartsTotal and t2.heartsTotal >= self._gameEndingScore)
-      
-      if trig then
-        self._gameOver = true
-        
-        local g1 = tonumber(t1.gameTotal) or 0
-        local g2 = tonumber(t2.gameTotal) or 0
-        
-        if g1 > g2 then
-          self._winningTeam = 1
-        elseif g2 > g1 then
-          self._winningTeam = 2
-        else
-          self._winningTeam = nil  -- tie
-        end
-        
-        self._winningMode = "TOTAL" -- label only; keep or ignore
+
+      local g1 = tonumber(t1.gameTotal) or 0
+      local g2 = tonumber(t2.gameTotal) or 0
+
+      if g1 > g2 then
+        self._winningTeam = 1
+      elseif g2 > g1 then
+        self._winningTeam = 2
+      else
+        self._winningTeam = nil  -- tie
       end
+
+      self._winningMode = "TOTAL" -- label only; keep or ignore
+    else
+      self._winningTeam = nil
+      self._winningMode = nil
     end
   end
   
