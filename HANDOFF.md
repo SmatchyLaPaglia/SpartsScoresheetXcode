@@ -2,7 +2,7 @@
 
 ## Current State
 
-**Commit:** `68a4f02` on `main`. App builds, launches, and renders correctly on
+**Commit:** `ec6c316` on `main`. App builds, launches, and renders correctly on
 iPhone 17 simulator (`1B48ACAA-0AE2-40C3-B28B-BFDB1A4A3044`).
 
 **The app is landscape-only by design** — the scoresheet renders sideways relative
@@ -29,6 +29,24 @@ commits landed without a HANDOFF update:
   shot the moon, **both teams'** hearts and queen-of-spades cells are locked
   (can't be manually overridden away from the forced 13/0 + queen values).
   Moon checkboxes themselves stay tappable so the shot can be undone.
+- **Moon-shot visual indicator** (`ec6c316`) — iterated on top of the lock
+  above to make the moon-shot state actually *look* distinct, after a
+  round of feedback narrowed it down from several tried-and-dropped looks
+  (gold-stroked rect around the group, solid black cell backgrounds, a
+  black disc/black square behind the crescent, a full-moon 🌕 instead of
+  the crescent — all superseded, see git history on `ScoreTable.lua` if
+  reviving any of them). Landed on: split `CheckboxCell`/`IncrementingCell`'s
+  `disabled` flag into `disabled` (blocks touch) + `muted` (grays `:draw()`)
+  so a cell can be locked without being grayed. Shooting team's hearts/queen
+  cells get `Theme.leftHeaderBg` (the chip-label slab color) background with
+  gold (`Theme.moonGold`) text/tick — full color, non-interactive. Its moon
+  checkbox is the only cell left interactive in the hearts area (unchecking
+  it is the only way out of the moon-shot state) and gets a same-color rect
+  + a moon emoji (🌙, sized to `self.numberFontSize` to match the hearts
+  number) painted over it, hiding the checkbox chrome without touching its
+  hit-test region. The other team's hearts/queen/moon cells get the same
+  slab background but with text/tick color matched to the background too —
+  fully hides the "0"/tick (no gold on that side) rather than graying them.
   Verified on-device via a temporary one-shot test hook in `ScoreSheets:draw`
   (forced `t1_moon.value = true` at launch, screenshotted, then reverted —
   see "No touch injection in the workflow" below for why this pattern is

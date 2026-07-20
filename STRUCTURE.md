@@ -130,20 +130,37 @@ interactive widgets. Key pieces:
   notch/orientation info every single frame (not cached across frames
   except in `self.metrics`). It also positions the long-press sensors used
   for name-box interactions.
-- `:draw()` calls `:layout()`, then — before drawing anything — sets
-  `self.cells.{t1,t2}_hearts.disabled` and `{t1,t2}_qs.disabled` to
-  `moonActive` (true whenever *either* team's moon checkbox is checked).
-  This is the **moon-shot lock**: while a moon shot is active, neither
-  team's hearts nor queen cell can be manually edited (grayed out, touch
-  blocked — see `CheckboxCell.lua`/`IncrementingCell.lua`'s `disabled`
-  handling), so the forced 13/0 + queen values can't be walked back except
-  by un-checking moon. The moon checkboxes themselves are never disabled.
-  Then draws headers, name cells (with placeholder-gray vs.
-  real-name-black text color), the dealer's blue outline box, chip labels
-  ("bid/took", "hearts", "queen", "moon"), the interactive cells, and the
-  right-hand score table (reads already-computed `team.spadesScore` etc. —
-  **this file does not compute scores**, it only formats/displays what
-  `ScoreLedger` already wrote onto the team tables).
+- `:draw()` calls `:layout()`, then — before drawing anything — computes
+  `moonShooter` (1, 2, or nil, from which team's moon checkbox is true) and
+  calls a local `setMoonLock(prefix, isShooter)` for each team. This is the
+  **moon-shot lock and its visual treatment**, all driven by two
+  independent per-cell flags on `CheckboxCell`/`IncrementingCell`:
+  `disabled` (blocks `:touched()`) and `muted` (grays `:draw()` — see those
+  files below for why they're split). No moon active: both teams' hearts/
+  queen/moon cells are normal (`disabled=false`, theme default colors).
+  Shooting team: hearts + queen cells get `disabled=true` (locked, so the
+  forced 13/0+queen values can't be hand-edited) but `muted=false` and
+  `colBg`/`colText`/`colTick` overridden to `Theme.leftHeaderBg` (the same
+  slab the chip labels use) with `Theme.moonGold` text/tick — full color,
+  just non-interactive. Its moon checkbox stays `disabled=false` (the only
+  interactive cell left in the hearts area — unchecking it is the only way
+  out of the moon-shot state); a same-`Theme.leftHeaderBg` rect plus a moon
+  emoji (sized to `self.numberFontSize`, matching the hearts number's
+  scale) are drawn over it after the cells, obscuring the checkbox chrome
+  without touching its hit-test region. Non-shooting team: all three cells
+  get `disabled=true`, `colBg` **and** `colText`/`colTick` both set to
+  `Theme.leftHeaderBg` — same background as the shooter's cells, but text
+  color matched to it too so the "0"/tick are fully invisible rather than
+  grayed (no gold anywhere on this side). `muted` stays `false` throughout
+  this function; the old gray/`mutedOpaque()` treatment (and a gold
+  outline rect around the shooter's group) were tried and dropped in favor
+  of this flatter, theme-matched look — see git history on `ScoreTable.lua`
+  if reviving either. Then draws headers, name cells (with placeholder-gray
+  vs. real-name-black text color), the dealer's blue outline box, chip
+  labels ("bid/took", "hearts", "queen", "moon"), the interactive cells,
+  and the right-hand score table (reads already-computed `team.spadesScore`
+  etc. — **this file does not compute scores**, it only formats/displays
+  what `ScoreLedger` already wrote onto the team tables).
 - `:touched(t)` fans the touch out to every cell + long-press sensor, then
   has **special-cased moon/queen exclusivity logic**: checking one team's
   moon box force-clears the other team's moon, and immediately sets that
@@ -359,24 +376,29 @@ range `[min,max]` (default 0–13): stepping past either boundary lands on
 number won't go past X" confusion reports that are actually working as
 designed. Per-touch-id ownership (`_owners`, class-level) is claimed only
 on `BEGAN` inside the cell's box and held until `ENDED`/`CANCELLED`; if a
-cell "eats" a later, unrelated touch with a recycled id, look here. Also has
-a `disabled` flag (see `CheckboxCell.lua` below — both widgets share the
-same pattern) used on the hearts cells while a moon shot is active.
+cell "eats" a later, unrelated touch with a recycled id, look here. Also
+has `disabled` and `muted` flags (see `CheckboxCell.lua` below — both
+widgets share the same pattern) driving the moon-shot cell treatment set
+every frame by `ScoreTable:draw()`.
 
 ### `CheckboxCell.lua`
 Simpler tap-to-toggle widget (queen/moon), same per-touch ownership pattern
-as `IncrementingCell`. Has a `disabled` flag (set every frame by
-`ScoreTable:draw()` — both teams' hearts/queen cells are disabled together
-whenever *either* team's moon checkbox is checked, not just the opposing
-team's; the moon checkboxes themselves are never disabled by this, so the
-shot stays undoable) that mutes its colors toward gray at full alpha
-(`mutedOpaque()`, a local helper duplicated identically in both
-`CheckboxCell.lua` and `IncrementingCell.lua`) and blocks `:touched()`
-entirely — if a checkbox looks "grayed out but still tappable" or vice
-versa, the mismatch is between this mute-color logic and the
-`self.disabled` gate in `:touched()`. If the two `mutedOpaque()` copies
-ever need to diverge (or get out of sync by accident), that's the one bit
-of copy-paste in this pair of files.
+as `IncrementingCell`. Has two independent per-frame flags, both set by
+`ScoreTable:draw()`'s moon-shot logic: `disabled` blocks `:touched()`
+entirely, while `muted` (when true) grays `colBg`/`colStroke`/`colTick`
+toward gray at full alpha (`mutedOpaque()`, a local helper duplicated
+identically in both `CheckboxCell.lua` and `IncrementingCell.lua`) in
+`:draw()`. They're split — rather than one flag doing both — because the
+moon-shot state needs a cell that's locked but *not* grayed (the shooter's
+hearts/queen, which `ScoreTable` also recolors via `colBg`/`colText`/
+`colTick` directly to a gold-on-slab look) as well as one that's locked
+*and* fully hidden (the non-shooting team's cells, where `colText`/
+`colTick` get set to match `colBg` exactly so nothing is legible — see
+`ScoreTable.lua`'s `:draw()` above for the full color matrix). If a
+checkbox looks "grayed but still tappable" or vice versa, check `disabled`
+vs. `muted` independently — they're no longer the same switch. If the two
+`mutedOpaque()` copies ever need to diverge, that's the one bit of
+copy-paste in this pair of files.
 
 ### `Sensor.lua`
 A generic gesture-recognizer utility (tap/drag/swipe/long-press/zoom/drop/
@@ -475,7 +497,8 @@ archives live in the device's `Documents:` sandbox, not here.
 | Tap lands on wrong cell / touch feels "stuck" to one widget | Per-touch ownership tables: `IncrementingCell._owners` / `CheckboxCell._owners`; then `ScoreSheets:touched()`'s routing order |
 | Scrolling fights with cell dragging | `ScoreSheets:touched()` — two-finger vs one-finger vs cell-ownership precedence |
 | Moon/queen checkbox behaves inconsistently across teams | `ScoreTable:touched()`'s inline exclusivity logic **and** `ScoreRules.syncHeartsMoon` (two implementations of one rule) |
-| Hearts/queen cell stuck locked (or editable when it shouldn't be) around a moon shot | `ScoreTable:draw()`'s `moonActive` disabled-lock assignment, then `CheckboxCell`/`IncrementingCell`'s `self.disabled` gate in `:touched()`/`:draw()` |
+| Hearts/queen cell stuck locked (or editable when it shouldn't be) around a moon shot | `ScoreTable:draw()`'s `moonShooter`/`setMoonLock` assignment, then `CheckboxCell`/`IncrementingCell`'s `self.disabled` gate in `:touched()` |
+| Moon-shot cell colors wrong (not gold, not covered, wrong background) | `ScoreTable:draw()`'s `setMoonLock` color matrix (`colBg`/`colText`/`colTick` per shooter/non-shooter/no-moon branch) — `muted` is always left `false` here, so `mutedOpaque()` graying isn't in play; the colors above are what you see |
 | Wrong dealer name on hand 3+ | `ScoreSheets._dealerForHand` / `_partnerOf` |
 | Data lost or wrong after relaunch | Both persistence paths in "Persistence" above — check which one actually wrote/read |
 | Archive image/summary wrong or stuck faded | `ArchiveExporter` (render-time state) vs `ArchiveBrowser._plaqueA`/`metaCache` (browse-time state) |
