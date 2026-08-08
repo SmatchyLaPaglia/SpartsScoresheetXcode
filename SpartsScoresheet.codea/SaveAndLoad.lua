@@ -84,7 +84,21 @@ function loadGameState()
   sheets.tables = tables
   sheets.scrollY = 0
   sheets.ledger = nil   -- force recompute next draw
-  
+
+  -- The line below discards this `sheets` and builds a fresh one so that
+  -- :init() re-wires everything (buttons, sensors, dealer tracking, and
+  -- the 4 name UITextFields) against the loaded tables. That fresh :init()
+  -- creates its own 4 UITextFields and attaches them to the host view —
+  -- if we don't remove the outgoing instance's 4 fields first, they stay
+  -- attached forever as an invisible, non-functional orphaned duplicate
+  -- set sitting at hand 1's position (this only happens once, at the
+  -- setup() -> loadGameState() handoff at launch, not per hand/table).
+  if sheets._rawNameFields then
+    for _, tf in ipairs(sheets._rawNameFields) do
+      if tf then tf:removeFromSuperview_() end
+    end
+  end
+
   sheets = ScoreSheets(function() return tables[1].teams end)
   sheets.tables = tables
 

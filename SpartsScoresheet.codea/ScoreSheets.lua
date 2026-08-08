@@ -1439,12 +1439,16 @@ function ScoreSheets:_syncNameFieldFrames()
   -- These are Codea-space Y anchors for the first table’s name rows
   local ys = { m.t1_row1, m.t1_row2, m.t2_row1, m.t2_row2 }
   
+  -- IMPORTANT: fields must track hand 1's drawn position exactly, via the
+  -- same offset :draw() and touch-forwarding use (see _handRowOffset) —
+  -- this used to add raw _effectiveScrollY() directly, missing the "-10"
+  -- baked into that offset, leaving the fields ~10px off from hand 1's
+  -- actual drawn row.
+  local rowOffY = self:_handRowOffset(1)
   for i, tf in ipairs(self._rawNameFields) do
     local y = ys[i]
     if y and tf then
-      -- IMPORTANT: fields must scroll with the same scrollY as the drawn content
-      local sy = self:_effectiveScrollY()
-      tf.frame = codeaToUIKitRect(m.innerX, y + sy, m.wName, m.leftRowH)
+      tf.frame = codeaToUIKitRect(m.innerX, y + rowOffY, m.wName, m.leftRowH)
     end
   end
 end
