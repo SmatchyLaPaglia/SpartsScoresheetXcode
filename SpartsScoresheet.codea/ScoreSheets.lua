@@ -1595,6 +1595,10 @@ function ScoreSheets:_consumePickerRequest(tableIndex)
   t._pendingPickerCell = nil
   if not cell.disabled then
     self._activePicker = { cell = cell, tableIndex = tableIndex }
+    -- The 4 name fields are real UITextFields layered on top of the whole
+    -- Codea canvas, so on hand 1 they'd otherwise intercept a tap that
+    -- lands on the popup before this purely-Lua modal ever sees it.
+    self:_setNameFieldsEnabled(false)
   end
 end
 
@@ -1657,6 +1661,7 @@ function ScoreSheets:_handlePickerTouch(t)
         end
         local tbl = self.tables[p.tableIndex]
         self._activePicker = nil
+        self:_setNameFieldsEnabled(true)
         if tbl then tbl:syncBack() end
         if saveGameState then saveGameState() end
         return true
@@ -1666,6 +1671,7 @@ function ScoreSheets:_handlePickerTouch(t)
 
   -- Tap landed outside every option: dismiss, leave the value unchanged.
   self._activePicker = nil
+  self:_setNameFieldsEnabled(true)
   return true
 end
 
