@@ -49,7 +49,12 @@ function ScoreSheets:init(makeTeams)
   self._winningTeam = nil   -- 1 or 2
   self._winningMode = nil   -- "SPADES" or "HEARTS"
   self._gameEndingScore = 600
-  
+
+  -- Number-picker popup (tap on an IncrementingCell): nil when closed, else
+  -- { cell=<IncrementingCell>, tableIndex=<i> } — see _openNumberPicker/
+  -- _handlePickerTouch/_drawNumberPicker.
+  self._activePicker = nil
+
   -- One-time hint overlay (appears when scrolling first becomes possible)
   self._scrollHintAlpha = 0
   self._scrollHintActive = false
@@ -383,7 +388,7 @@ function ScoreSheets:draw()
   end
   
   background(35)
-  
+
   local uiInset = 10  -- tune to taste; this is the “accidental” margin you circled
   local notchOnLeft, notchOnRight = self.notchTracker:update(DeltaTime)
   self.notchOnLeft  = notchOnLeft
@@ -887,6 +892,10 @@ if self.archiveExporter and self._archivingStage == 1 then
   end
 end
 
+if self._activePicker then
+  self:_drawNumberPicker()
+end
+
 self._inDraw = false
 end
 
@@ -899,7 +908,11 @@ function ScoreSheets:touched(t)
   if self.archiveBrowser and self.archiveBrowser.active then
     return self.archiveBrowser:touched(t)
   end
-  
+
+  if self._activePicker then
+    return self:_handlePickerTouch(t)
+  end
+
   if self._scrollHintDismissOnTouch and t.state == BEGAN then
     self._scrollHintAlpha = 0
     self._scrollHintActive = false
@@ -973,7 +986,9 @@ function ScoreSheets:touched(t)
       local botY    = centerY - stepH/2
       
       if tt.y >= botY and tt.y <= topY then
-        if self.tables[i]:touched(tt) then return true end
+        local wasHandled = self.tables[i]:touched(tt)
+        self:_consumePickerRequest(i)
+        if wasHandled then return true end
       end
     end
     return false
@@ -1254,7 +1269,9 @@ function ScoreSheets:touched(t)
         deltaX   = t.deltaX,
         deltaY   = t.deltaY
       }
-      if self.tables[i]:touched(tt) then break end
+      local wasHandled = self.tables[i]:touched(tt)
+      self:_consumePickerRequest(i)
+      if wasHandled then break end
     end
     return true
   end
@@ -1562,6 +1579,131 @@ function ScoreSheets:_handRowOffset(i)
   local stepH, gapH = self:_stackMetrics()
   local d = stepH + gapH
   return -(i - 1) * d + self:_effectiveScrollY() - 10
+end
+
+-- ============================================================
+-- Number-picker popup (tap on an IncrementingCell)
+-- ============================================================
+
+-- Called right after forwarding a touch to table `tableIndex`, once per
+-- routing path (see :touched()) — picks up a tap-requested picker open
+-- and promotes it to the single, cross-hand self._activePicker.
+function ScoreSheets:_consumePickerRequest(tableIndex)
+  local t = self.tables[tableIndex]
+  if not (t and t._pendingPickerCell) then return end
+  local cell = t._pendingPickerCell
+  t._pendingPickerCell = nil
+  if not cell.disabled then
+    self._activePicker = { cell = cell, tableIndex = tableIndex }
+  end
+end
+
+-- Screen-space layout for the popup + its 15 option rects ("--", 0..13).
+-- Shared by touch-handling and drawing so they can never disagree. Cell
+-- coordinates are local to the table's translated draw space, so only the
+-- Y axis needs _handRowOffset (matches how dealer/info hit-rects convert
+-- to screen space elsewhere in this file); X isn't translated per-hand.
+function ScoreSheets:_pickerGeometry()
+  local p = self._activePicker
+  if not p or not p.cell then return nil end
+  local cell = p.cell
+  local rowOffY = self:_handRowOffset(p.tableIndex)
+
+  local screenCellX   = cell.x
+  local screenCellY   = cell.y + rowOffY
+  local screenCellCX  = screenCellX + cell.w / 2
+  local screenCellTop = screenCellY + cell.h
+
+  local n     = 15  -- "--" plus 0..13
+  local optW  = 44
+  local optH  = cell.h * 1.3
+  local gap   = 8
+  local totalW = n * optW
+
+  local m = self.tables[1] and self.tables[1].metrics
+  local tableW = m and (m.tablesW or m.tableW or (WIDTH - m.innerX * 2))
+  local minX = (m and m.innerX or 0) + 4
+  local maxX = (m and (m.innerX + tableW) or WIDTH) - totalW - 4
+  if maxX < minX then maxX = minX end
+  local px = clamp(screenCellCX - totalW / 2, minX, maxX)
+
+  local py = screenCellTop + gap
+  if py + optH > HEIGHT - 20 then
+    py = screenCellY - gap - optH  -- not enough room above; flip below
+  end
+
+  local options = {}
+  for i = 1, n do
+    options[i] = { x = px + (i - 1) * optW, y = py, w = optW, h = optH }
+  end
+
+  return { x = px, y = py, w = totalW, h = optH, options = options }
+end
+
+function ScoreSheets:_handlePickerTouch(t)
+  if t.state ~= BEGAN then
+    return true  -- swallow every other state while the modal is open
+  end
+
+  local geo = self:_pickerGeometry()
+  if geo then
+    for i, r in ipairs(geo.options) do
+      if t.x >= r.x and t.x <= r.x + r.w and t.y >= r.y and t.y <= r.y + r.h then
+        local p = self._activePicker
+        if i == 1 then
+          p.cell:unset()
+        else
+          p.cell:set(i - 2)  -- option 2 = "0" ... option 15 = "13"
+        end
+        local tbl = self.tables[p.tableIndex]
+        self._activePicker = nil
+        if tbl then tbl:syncBack() end
+        if saveGameState then saveGameState() end
+        return true
+      end
+    end
+  end
+
+  -- Tap landed outside every option: dismiss, leave the value unchanged.
+  self._activePicker = nil
+  return true
+end
+
+function ScoreSheets:_drawNumberPicker()
+  local geo = self:_pickerGeometry()
+  if not geo then return end
+  local cell = self._activePicker.cell
+
+  pushStyle()
+  rectMode(CORNER)
+
+  drawRoundedRect(geo.x + geo.w/2, geo.y + geo.h/2, geo.w, geo.h, geo.h/2,
+    color(225, 225, 225, 255), color(150, 150, 150, 255))
+
+  font("HelveticaNeue-Bold")
+  fontSize(geo.h * 0.4)
+  textAlign(CENTER)
+  textMode(CENTER)
+
+  for i, r in ipairs(geo.options) do
+    local label = (i == 1) and "--" or tostring(i - 2)
+    local isCurrent = (i == 1 and not cell.hasSet)
+      or (cell.hasSet and (i - 2) == math.floor(cell.value))
+    if isCurrent then
+      noStroke()
+      fill(60, 130, 240, 70)
+      rect(r.x + 2, r.y + 2, r.w - 4, r.h - 4)
+    end
+    if i > 1 then
+      stroke(190, 190, 190, 255)
+      strokeWidth(1)
+      line(r.x, r.y + 4, r.x, r.y + r.h - 4)
+    end
+    fill(0, 0, 0, 255)
+    text(label, r.x + r.w/2, r.y + r.h/2)
+  end
+
+  popStyle()
 end
 
 function ScoreSheets:_presentNewGameConfirm()

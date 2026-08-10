@@ -726,6 +726,18 @@ function ScoreTable:touched(t)
       if c:touched(t) then handled = true end
     end
   end
+
+  -- A cell's tap sets wantsPicker (see IncrementingCell.lua) instead of
+  -- stepping its value directly; hand the request up so ScoreSheets (which
+  -- owns cross-hand modal state and screen-space positioning) can open the
+  -- number-picker popup for it.
+  for _, c in pairs(self.cells) do
+    if c and c.wantsPicker then
+      c.wantsPicker = false
+      self._pendingPickerCell = c
+    end
+  end
+
   for _, s in pairs(self.lp) do
     if s and s.touched then
       if s:touched(t) then handled = true end
