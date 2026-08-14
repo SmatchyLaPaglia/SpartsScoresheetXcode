@@ -155,7 +155,6 @@ function setup()
   end
 
   videoPlayer = CodeaAVPlayer()
-  movieActive = false
 
 end
 

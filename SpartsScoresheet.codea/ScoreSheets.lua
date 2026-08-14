@@ -1087,9 +1087,7 @@ function ScoreSheets:touched(t)
       if objc and objc.viewer and objc.viewer.view then
         objc.viewer.view:endEditing_(true)
       end
-      if movieActive then
-        videoPlayer:showAndAutoplayMOV(asset.Sparts_Scoresheet_Intro)
-      end
+      videoPlayer:showAndAutoplayMOV(asset.Sparts_Scoresheet_Intro)
       return true
     end
   end
@@ -1602,6 +1600,16 @@ function ScoreSheets:_consumePickerRequest(tableIndex)
   end
 end
 
+-- Font size for the popup's option labels, matched to the "TEAMS" header
+-- label's size (same fitFontSize call ScoreTable uses to draw it).
+function ScoreSheets:_pickerFontSize()
+  local m = self.tables[1] and self.tables[1].metrics
+  if not (m and m.x and m.x[1] and m.x[2] and m.leftHeaderH) then
+    return 20  -- fallback before layout has run once
+  end
+  return fitFontSize("TEAMS", (m.x[2] - m.x[1]) - 10, m.leftHeaderH - 8, 1)
+end
+
 -- Screen-space layout for the popup + its 15 option rects ("--", 0..13).
 -- Shared by touch-handling and drawing so they can never disagree. Cell
 -- coordinates are local to the table's translated draw space, so only the
@@ -1619,7 +1627,7 @@ function ScoreSheets:_pickerGeometry()
   local screenCellTop = screenCellY + cell.h
 
   local n     = 15  -- "--" plus 0..13
-  local optW  = 44
+  local optW  = math.max(self:_pickerFontSize() * 1.7, 28)
   local optH  = cell.h * 1.3
   local gap   = 8
   local totalW = n * optW
@@ -1669,7 +1677,25 @@ function ScoreSheets:_handlePickerTouch(t)
     end
   end
 
-  -- Tap landed outside every option: dismiss, leave the value unchanged.
+  -- Tap landed back on the cell that owns this open popup: step it by 1,
+  -- same as a normal tap, and keep the popup open — it redraws from the
+  -- cell's live value every frame, so the highlighted option follows
+  -- along automatically without any extra bookkeeping here.
+  local p = self._activePicker
+  if p and p.cell then
+    local rowOffY = self:_handRowOffset(p.tableIndex)
+    local cx, cy, cw, ch = p.cell.x, p.cell.y + rowOffY, p.cell.w, p.cell.h
+    if t.x >= cx and t.x <= cx + cw and t.y >= cy and t.y <= cy + ch then
+      p.cell:_step(1, "tap")
+      local tbl = self.tables[p.tableIndex]
+      if tbl then tbl:syncBack() end
+      if saveGameState then saveGameState() end
+      return true
+    end
+  end
+
+  -- Tap landed outside the popup and outside the cell: dismiss, leave the
+  -- value unchanged.
   self._activePicker = nil
   self:_setNameFieldsEnabled(true)
   return true
@@ -1683,11 +1709,19 @@ function ScoreSheets:_drawNumberPicker()
   pushStyle()
   rectMode(CORNER)
 
+  -- drawRoundedRect's fill/stroke split degenerates when r == h/2 (a full
+  -- pill): the "fill" rect ends up zero-height, so the pill's visible body
+  -- color actually comes from strokeCol, not fillCol. So to get a gray
+  -- pill with a white border, draw a slightly larger all-white pill first,
+  -- then the normal-size gray pill on top, leaving a white rim showing.
+  local border = 3
+  drawRoundedRect(geo.x + geo.w/2, geo.y + geo.h/2, geo.w + border*2, geo.h + border*2, (geo.h + border*2)/2,
+    color(255, 255, 255, 255), color(255, 255, 255, 255))
   drawRoundedRect(geo.x + geo.w/2, geo.y + geo.h/2, geo.w, geo.h, geo.h/2,
-    color(225, 225, 225, 255), color(150, 150, 150, 255))
+    color(225, 225, 225, 255), color(225, 225, 225, 255))
 
   font("HelveticaNeue-Bold")
-  fontSize(geo.h * 0.4)
+  fontSize(self:_pickerFontSize())
   textAlign(CENTER)
   textMode(CENTER)
 

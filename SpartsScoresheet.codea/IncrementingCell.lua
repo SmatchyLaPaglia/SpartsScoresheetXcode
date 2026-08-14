@@ -95,9 +95,15 @@ function IncrementingCell:init(x, y, w, h, initialValue)
   end)
 
   self.sensor:onTap(function()
-    -- A tap no longer steps the value — it requests the number-picker
-    -- popup (owned/drawn by ScoreSheets; see ScoreTable:touched(), which
-    -- polls this flag after routing touches to cells each frame).
+    -- Tap steps the value by 1, same as always, AND requests the
+    -- number-picker popup (owned/drawn by ScoreSheets; see
+    -- ScoreTable:touched(), which polls this flag after routing touches
+    -- to cells each frame) so it opens showing the freshly-stepped value.
+    -- Once the popup is already open, repeat taps on this cell are routed
+    -- directly by ScoreSheets:_handlePickerTouch (this onTap doesn't fire
+    -- again — the popup being active intercepts touches earlier), so the
+    -- popup's highlighted value tracks every further tap automatically.
+    self:_step(1, "tap")
     self.wantsPicker = true
   end)
 
