@@ -45,11 +45,19 @@ local ALT_COLS = {
   { key="GRAND", w=69  },
 }
 
-local function buildEdges(x0, cols)
+-- Natural (design) width of one full row of columns, at scale 1.0.
+local ALT_COLS_NATURAL_W = 0
+for i = 1, #ALT_COLS do ALT_COLS_NATURAL_W = ALT_COLS_NATURAL_W + ALT_COLS[i].w end
+
+-- Design row height at scale 1.0 (matches the old fixed max-clamp value).
+local NATURAL_ROW_H = 64
+
+local function buildEdges(x0, cols, scale)
+  scale = scale or 1
   local edges = { x0 }
   local x = x0
   for i = 1, #cols do
-    x = x + cols[i].w
+    x = x + cols[i].w * scale
     edges[i+1] = x
   end
   return edges
@@ -374,20 +382,28 @@ function ScoreTable:layout()
   
   self.metrics = self.metrics or {}
   local m = self.metrics
-  
-  -- Basic vertical sizing (keep identical to legacy)
-  m.leftHeaderH  = math.max(28, math.min(64, tablesH / 5))
+
+  -- Scale the ENTIRE scoresheet (columns, row heights, fonts, drag distance)
+  -- by a single width-driven factor, so it always fits whatever width is
+  -- available (narrow in portrait, wide in landscape) while keeping every
+  -- proportion identical to the original landscape design.
+  local scale = innerW / ALT_COLS_NATURAL_W
+  scale = math.max(0.35, math.min(1.6, scale))
+  m.scale = scale
+
+  m.leftHeaderH  = math.max(16, NATURAL_ROW_H * scale)
   m.leftRowH     = m.leftHeaderH
   m.rightHeaderH = m.leftHeaderH
   m.rightRowH    = m.leftRowH
-  
+
   -- Store inner rect + table height
   m.innerX, m.innerY = innerX, innerY
   m.tablesH = tablesH
   m.cols = ALT_COLS
-  
-  -- Build absolute X edges from the column spec
-  m.x = buildEdges(innerX, ALT_COLS)  -- m.x[1]=x0 ... m.x[15]=x14
+
+  -- Build absolute X edges from the column spec, using the SAME scale as
+  -- the row heights above so the whole table scales uniformly.
+  m.x = buildEdges(innerX, ALT_COLS, scale)  -- m.x[1]=x0 ... m.x[15]=x14
   m.tablesW = m.x[#m.x] - m.x[1]
   
   -- Convenience: column width by 1-based column index
@@ -409,14 +425,21 @@ function ScoreTable:layout()
   m.gapW   = 0
   m.rightW = (m.x[15] - m.x[8])   -- R1..GRAND
   
-  -- Y positions (identical to legacy)
+  -- Y positions (identical to legacy, gaps scaled along with everything else)
+  local headerGap = layout.headerGap * scale
+  local teamGap   = layout.teamGap * scale
   m.headY   = innerY + tablesH - m.leftHeaderH
-  m.yAfterHeadGap = m.headY - layout.headerGap
+  m.yAfterHeadGap = m.headY - headerGap
   m.t1_row1 = m.yAfterHeadGap - m.leftRowH
   m.t1_row2 = m.t1_row1 - m.leftRowH
-  m.t2_row1 = m.t1_row2 - layout.teamGap - m.leftRowH
+  m.t2_row1 = m.t1_row2 - teamGap - m.leftRowH
   m.t2_row2 = m.t2_row1 - m.leftRowH
-  
+
+  -- Actual vertical span of the drawn content (top of header to bottom of
+  -- the last row) — used by ScoreSheets to stack hands tightly instead of
+  -- reserving a fixed fraction of screen height per hand.
+  m.contentH = (m.headY + m.leftHeaderH) - m.t2_row2
+
   self.numberFontSize = m.leftRowH * 0.5
   
   -- Long-press sensor rects (names + TEAMS header)
@@ -468,6 +491,15 @@ function ScoreTable:layout()
   self:setCellFrame(self.cells.t2_qs,     m.x[6], m.t2_row2, colW(6), m.leftRowH)
   self:setCellFrame(self.cells.t2_moon,   m.x[7], m.t2_row2, colW(7), m.leftRowH)
   self:_applyNumberFontSize()
+
+  -- Keep drag-to-step distance proportional to the (possibly scaled-down)
+  -- column widths it sweeps across, so a full "--"->13 drag always spans the
+  -- same fraction of the visible table regardless of scale.
+  for _, c in pairs(self.cells) do
+    if c.set then
+      c.stepPx = (501 / 13) * scale
+    end
+  end
 end
 
 function ScoreTable:draw()

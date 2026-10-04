@@ -2,6 +2,9 @@
 _keyboardVisible = false
 _keyboardHeight  = 0
 
+-- How many blank hands a fresh game starts with (a full scorepad's worth).
+INITIAL_HAND_COUNT = 12
+
 ScoreSheets = class()
 
 function ScoreSheets:init(makeTeams)
@@ -85,6 +88,14 @@ function ScoreSheets:init(makeTeams)
     return
   end
   devLog("ScoreTable created")
+
+  -- Pre-fill the rest of the scorepad with blank hands so a new game starts
+  -- with a full stack to scroll through instead of tapping "New Hand" repeatedly.
+  for _ = 2, INITIAL_HAND_COUNT do
+    local prevTeams = self.tables[#self.tables].teams
+    table.insert(self.tables, ScoreTable(newTeamsFromPrevious(prevTeams)))
+  end
+  devLog("Pre-filled", #self.tables, "blank hands")
   
   -- Scroll sensor (whole screen)
   devLog("scroll sensor")
@@ -480,19 +491,20 @@ function ScoreSheets:draw()
       local rowOffY = self:_handRowOffset(i)
       translate(0, rowOffY)
       
-      -- Hand labels 
+      -- Hand labels
       local m = self.tables[i].metrics
       if m then
         pushStyle()
         font("Chalkduster")  -- fallback: "ChalkboardSE-Bold"
-        fontSize(24)
+        fontSize(self.handLabelFontSize or 24)
         fill(120)
         textAlign(LEFT)
         textMode(CORNER)
-        
-        -- we're in this table's translated space already
-        local centerY = HEIGHT/2
-        local topY    = centerY + stepH/2
+
+        -- Read the actual header position from this hand's own metrics
+        -- (not derived from stepH/centerY) so the label sits flush above
+        -- the header regardless of how tightly hands are now stacked.
+        local topY    = m.headY + m.leftHeaderH
         local lx      = m.innerX + uiInset
         local ly      = topY
         
@@ -710,15 +722,14 @@ if not self._gameOver then
       local rightEdge = m.innerX + tableW
       
       self.newBtn.x = rightEdge - self.newBtn.w
-      
-      local stepH, gapH = self:_stackMetrics()
-      local d  = stepH + gapH
-      local sy = self:_effectiveScrollY()
-      
+
+      -- Bottom edge of the LAST hand's actual drawn content, in global
+      -- (screen) coordinates — every hand shares the same local layout, so
+      -- table 1's m.t2_row2 plus the last hand's own row offset gives the
+      -- true bottom regardless of how tightly hands are stacked.
       local i = #self.tables
-      local tableCenterY = (HEIGHT/2) + ( - (i-1) * d + sy )
-      local tableBottomY = tableCenterY - (stepH/2)
-      
+      local tableBottomY = m.t2_row2 + self:_handRowOffset(i)
+
       local pad = 23   -- 8px lower than the original 15
       self.newBtn.y = tableBottomY - pad - self.newBtn.h
       
@@ -757,14 +768,9 @@ elseif self._gameOver == true then
     local tableW = m.tablesW or m.tableW or (WIDTH - m.innerX*2)
     local rightEdge = m.innerX + tableW
     
-    local stepH, gapH = self:_stackMetrics()
-    local d  = stepH + gapH
-    local sy = self:_effectiveScrollY()
-    
     local i = #self.tables
-    local tableCenterY = (HEIGHT/2) + ( - (i-1) * d + sy )
-    local tableBottomY = tableCenterY - (stepH/2)
-    
+    local tableBottomY = m.t2_row2 + self:_handRowOffset(i)
+
     local pad = 18
     local cx = rightEdge - (self.newBtn.w / 2)
     local cy = tableBottomY - pad - (self.tzBtn.h * 0.6)
@@ -968,7 +974,12 @@ function ScoreSheets:touched(t)
   end
   
   local function forwardTouchToTables(ttouch)
-    local stepH = self:_stackMetrics()
+    -- Every hand shares the same local layout, so table 1's own content
+    -- bounds (top of header to bottom of last row) are the band to test
+    -- against for any hand, once the touch is mapped into its local frame.
+    local m = self.tables[1] and self.tables[1].metrics
+    local topY = m and (m.headY + m.leftHeaderH)
+    local botY = m and m.t2_row2
 
     for i = 1, #self.tables do
       local tt = {
@@ -980,12 +991,8 @@ function ScoreSheets:touched(t)
         deltaX   = ttouch.deltaX,
         deltaY   = ttouch.deltaY
       }
-      
-      local centerY = HEIGHT/2
-      local topY    = centerY + stepH/2
-      local botY    = centerY - stepH/2
-      
-      if tt.y >= botY and tt.y <= topY then
+
+      if topY and botY and tt.y >= botY and tt.y <= topY then
         local wasHandled = self.tables[i]:touched(tt)
         self:_consumePickerRequest(i)
         if wasHandled then return true end
@@ -1505,6 +1512,10 @@ function ScoreSheets:_resetAll()
   }
   
   self.tables = { ScoreTable(teams) }
+  for _ = 2, INITIAL_HAND_COUNT do
+    local prevTeams = self.tables[#self.tables].teams
+    table.insert(self.tables, ScoreTable(newTeamsFromPrevious(prevTeams)))
+  end
   self.scrollY = 0
   -- Reset player names back to placeholders (UIKit is source-of-truth here)
   if self._rawNameFields then
@@ -1556,14 +1567,22 @@ function ScoreSheets:_stackMetrics()
   -- Ensure we have fresh layout metrics from the first table
   local t = self.tables and self.tables[1]
   if t and t.layout then t:layout() end
-  
-  -- vertical extent of a table block (matches your layout knob)
-  local stepH = HEIGHT * ((layout and layout.overallHeightPercent or 50) / 100)
-  
-  -- gap between hands: ~ one row height (fallback if metrics not ready yet)
-  local rowH = (t and t.metrics and t.metrics.leftRowH) or 16
-  local gapH = rowH * 1.2 + 10   -- extra 10px between a hand and the next hand's info text
-  
+
+  -- Vertical extent of a table block: the table's OWN drawn content height
+  -- (header + 4 rows), not a fixed fraction of screen height — this is what
+  -- makes the stack sit tight against each hand instead of leaving a big
+  -- reserved-but-unused gap once hands are scaled down (e.g. in portrait).
+  local m = t and t.metrics
+  local stepH = (m and m.contentH) or (HEIGHT * ((layout and layout.overallHeightPercent or 50) / 100))
+
+  -- Gap between hands: just enough room for the "HAND N: ..." label line
+  -- (see handLabelFontSize below, which the label-drawing code must also
+  -- use) plus a little breathing room — tightened down from the old fixed
+  -- 1.2 row heights + 10px, and now scales down with the sheet itself.
+  local scale = (m and m.scale) or 1
+  self.handLabelFontSize = 24 * scale
+  local gapH = self.handLabelFontSize + 10
+
   return stepH, gapH
 end
 
@@ -1601,13 +1620,21 @@ function ScoreSheets:_consumePickerRequest(tableIndex)
 end
 
 -- Font size for the popup's option labels, matched to the "TEAMS" header
--- label's size (same fitFontSize call ScoreTable uses to draw it).
-function ScoreSheets:_pickerFontSize()
+-- label's size (same fitFontSize call ScoreTable uses to draw it), then
+-- capped so the widest label ("--") still fits inside whatever option
+-- width _pickerGeometry ends up giving each of the 15 slots.
+function ScoreSheets:_pickerFontSize(optW)
   local m = self.tables[1] and self.tables[1].metrics
+  local fs
   if not (m and m.x and m.x[1] and m.x[2] and m.leftHeaderH) then
-    return 20  -- fallback before layout has run once
+    fs = 20  -- fallback before layout has run once
+  else
+    fs = fitFontSize("TEAMS", (m.x[2] - m.x[1]) - 10, m.leftHeaderH - 8, 1)
   end
-  return fitFontSize("TEAMS", (m.x[2] - m.x[1]) - 10, m.leftHeaderH - 8, 1)
+  if optW then
+    fs = math.min(fs, fitFontSize("--", optW - 6, optW - 6, 1))
+  end
+  return fs
 end
 
 -- Screen-space layout for the popup + its 15 option rects ("--", 0..13).
@@ -1626,17 +1653,26 @@ function ScoreSheets:_pickerGeometry()
   local screenCellCX  = screenCellX + cell.w / 2
   local screenCellTop = screenCellY + cell.h
 
-  local n     = 15  -- "--" plus 0..13
-  local optW  = math.max(self:_pickerFontSize() * 1.7, 28)
+  local n = 15  -- "--" plus 0..13
+  local margin = 8
+
+  -- Never let the popup exceed the actual screen width: shrink each
+  -- option to fit all 15 within WIDTH first, only growing up to the
+  -- font-driven ideal width when there's room to spare.
+  local idealOptW  = math.max(self:_pickerFontSize() * 1.7, 28)
+  local maxTotalW  = WIDTH - margin * 2
+  local optW       = math.min(idealOptW, maxTotalW / n)
   local optH  = cell.h * 1.3
   local gap   = 8
   local totalW = n * optW
 
-  local m = self.tables[1] and self.tables[1].metrics
-  local tableW = m and (m.tablesW or m.tableW or (WIDTH - m.innerX * 2))
-  local minX = (m and m.innerX or 0) + 4
-  local maxX = (m and (m.innerX + tableW) or WIDTH) - totalW - 4
-  if maxX < minX then maxX = minX end
+  -- Clamp position against the SCREEN edges, not the (narrower) table
+  -- bounds — totalW is already guaranteed <= WIDTH - margin*2 above, so
+  -- these bounds always fit; clamping against the table's own bounds
+  -- instead previously let px+totalW overflow past the true screen edge
+  -- whenever the table was narrower than the full popup width (portrait).
+  local minX = margin
+  local maxX = WIDTH - margin - totalW
   local px = clamp(screenCellCX - totalW / 2, minX, maxX)
 
   local py = screenCellTop + gap
@@ -1649,7 +1685,7 @@ function ScoreSheets:_pickerGeometry()
     options[i] = { x = px + (i - 1) * optW, y = py, w = optW, h = optH }
   end
 
-  return { x = px, y = py, w = totalW, h = optH, options = options }
+  return { x = px, y = py, w = totalW, h = optH, optW = optW, options = options }
 end
 
 function ScoreSheets:_handlePickerTouch(t)
@@ -1721,7 +1757,7 @@ function ScoreSheets:_drawNumberPicker()
     color(225, 225, 225, 255), color(225, 225, 225, 255))
 
   font("HelveticaNeue-Bold")
-  fontSize(self:_pickerFontSize())
+  fontSize(self:_pickerFontSize(geo.optW))
   textAlign(CENTER)
   textMode(CENTER)
 
