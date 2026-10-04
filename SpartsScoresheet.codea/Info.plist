@@ -5,6 +5,7 @@
 	<key>Buffer Order</key>
 	<array>
 		<string>Main</string>
+		<string>xcodeAddons</string>
 		<string>Helpers</string>
 		<string>IncrementingCell</string>
 		<string>Sensor</string>

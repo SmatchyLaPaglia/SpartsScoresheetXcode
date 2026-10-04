@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		232E085E2C512E9A0051AA36 /* Runtime in Frameworks */ = {isa = PBXBuildFile; productRef = 232E085D2C512E9A0051AA36 /* Runtime */; };
+		24C6ED91A6DECFA9F2BA9E85 /* PingPongModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 095CA4A5501B8010B7D75CAE /* PingPongModule.mm */; };
+		B1C808740BB60E1E01F6E850 /* TouchBridgeModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5A597AB73B74FE4FAB5BAD66 /* TouchBridgeModule.mm */; };
 		DB0F615922709F060024AE28 /* SpartsScoresheet.codea in Resources */ = {isa = PBXBuildFile; fileRef = DB0F615822709F060024AE28 /* SpartsScoresheet.codea */; };
 		DB0F615B2270A0FB0024AE28 /* Assets in Resources */ = {isa = PBXBuildFile; fileRef = DB0F615A2270A0FB0024AE28 /* Assets */; };
 		DB83FB30223DBDA2005750D2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB83FB2F223DBDA2005750D2 /* AppDelegate.swift */; };
@@ -33,6 +35,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		095CA4A5501B8010B7D75CAE /* PingPongModule.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = PingPongModule.mm; sourceTree = "<group>"; };
+		37DD4D27626365BE588C9B6B /* TouchBridgeModule.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = TouchBridgeModule.h; sourceTree = "<group>"; };
+		5A597AB73B74FE4FAB5BAD66 /* TouchBridgeModule.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = TouchBridgeModule.mm; sourceTree = "<group>"; };
 		DB0F615822709F060024AE28 /* SpartsScoresheet.codea */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SpartsScoresheet.codea; sourceTree = "<group>"; };
 		DB0F615A2270A0FB0024AE28 /* Assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets; sourceTree = "<group>"; };
 		DB83FB2C223DBDA2005750D2 /* SpartsScoresheet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpartsScoresheet.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -64,6 +69,7 @@
 		DB83FB7A223DC2E5005750D2 /* ProjectModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ProjectModule.mm; sourceTree = "<group>"; };
 		DBE4204D260B8B0D002BF271 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		E47652B83000A20B0068B3F8 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		FC00129CC09D98E729F3E974 /* PingPongModule.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = PingPongModule.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +136,10 @@
 				DB83FB57223DC01C005750D2 /* ModuleIncludes.h */,
 				DB83FB79223DC2E5005750D2 /* ProjectModule.h */,
 				DB83FB7A223DC2E5005750D2 /* ProjectModule.mm */,
+				FC00129CC09D98E729F3E974 /* PingPongModule.h */,
+				095CA4A5501B8010B7D75CAE /* PingPongModule.mm */,
+				37DD4D27626365BE588C9B6B /* TouchBridgeModule.h */,
+				5A597AB73B74FE4FAB5BAD66 /* TouchBridgeModule.mm */,
 			);
 			path = Module;
 			sourceTree = "<group>";
@@ -245,6 +255,8 @@
 				DB83FB54223DBF71005750D2 /* ProjectAddon.mm in Sources */,
 				DB83FB30223DBDA2005750D2 /* AppDelegate.swift in Sources */,
 				DB83FB7B223DC2E5005750D2 /* ProjectModule.mm in Sources */,
+				24C6ED91A6DECFA9F2BA9E85 /* PingPongModule.mm in Sources */,
+				B1C808740BB60E1E01F6E850 /* TouchBridgeModule.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

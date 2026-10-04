@@ -156,12 +156,15 @@ function setup()
 
   videoPlayer = CodeaAVPlayer()
 
+  AddonDemo.init()
+
 end
 
 function draw()
   background(35)
   if sheets then
     sheets:draw()
+    AddonDemo.draw()
     return
   end
 
@@ -180,6 +183,7 @@ function draw()
 end
 
 function touched(t)
+  if AddonDemo:touched(t) then return end
   if sheets and sheets:touched(t) then return end
 end
 

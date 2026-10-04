@@ -11,6 +11,8 @@
 #include "ModuleIncludes.h"
 
 #import "ProjectModule.h"
+#import "PingPongModule.h"
+#import "TouchBridgeModule.h"
 
 @interface ProjectAddon ()
 
@@ -30,6 +32,8 @@
 {
     return @[
              [ProjectModule new],
+             [PingPongModule new],
+             [TouchBridgeModule new],
             ];
 }
 
