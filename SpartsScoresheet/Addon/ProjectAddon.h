@@ -19,7 +19,12 @@ typedef void(^ProjectReady)(ProjectAddon*);
 
 @property (nullable, nonatomic, readonly) lua_State* L;
 @property (nullable, nonatomic, strong) ProjectReady ready;
-    
+
+/// The runtime controller, exposed so modules can reach thread-safe helpers
+/// like `unsafeRunLuaBlock:` and `runBlock:` (e.g. to call back into Lua from
+/// a native UIKit callback, which fires on the main thread).
+@property (nullable, nonatomic, readonly, weak) ThreadedRuntimeViewController* controller;
+
 @end
 
 NS_ASSUME_NONNULL_END
